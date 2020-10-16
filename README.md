@@ -3,8 +3,8 @@ Intelligent API Gateway to create a API commerce platform
 
 ## mission
 The idea is to create a platform for a marketplace in which data owners and data shoppers can meet. There are 2 actors: 
-- owners: provide data, create premium plans if needed
-- shoppers: search for data, consume data, subscribe to premium plans if needed
+- **owners**: provide data, create premium plans if needed
+- **shoppers**: search for data, consume data, subscribe to premium plans if needed
 
 Each data owner can decide what kind of data provide, the data is always expressed via a table format (columns and rows) and when ingested the owner can decide what part of the table is open to free access and what part, if any, requires a premium. 
 
