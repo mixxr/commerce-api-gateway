@@ -1,5 +1,5 @@
 # commerce-api-gateway
-Intelligent API Gateway to create a API commerce platform
+Intelligent API Gateway to create a data commerce platform in which vendors (owners) can publish and sell data.
 
 ## mission
 The idea is to create a platform for a marketplace in which data owners and data shoppers can meet. There are 2 actors: 
