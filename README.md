@@ -1,4 +1,4 @@
-# commerce-api-gateway
+# Data Gateway
 Intelligent API Gateway to create a data commerce platform in which vendors (owners) can publish and sell data.
 
 ## mission
