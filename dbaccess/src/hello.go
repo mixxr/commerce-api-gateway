@@ -52,4 +52,13 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Println("Read:", table.String())
+
+	s, _ := table.Cols.GetCreateTable()
+	fmt.Println("GetCreateTable:", s)
+	s, _ = table.Cols.GetInsertTable()
+	fmt.Println("GetInsertTable:", s)
+	s, _ = table.Values.GetCreateTable()
+	fmt.Println("GetCreateTable:", s)
+	s, _ = table.Values.GetInsertTable()
+	fmt.Println("GetInsertTable:", s)
 }
