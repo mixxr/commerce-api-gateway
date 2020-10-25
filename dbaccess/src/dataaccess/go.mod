@@ -1,4 +1,4 @@
-module dbaccess
+module dataaccess
 
 go 1.15
 

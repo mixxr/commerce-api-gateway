@@ -71,7 +71,7 @@
           <!--<verbose>true</verbose>-->
         </configuration>
         <executions>
-          <execution>
+          <!-- <execution>
             <id>default-build</id>
             <configuration>
               <packages>
@@ -90,7 +90,26 @@
                 <app>hello.go</app>
               </packages>
             </configuration>
-          </execution>
+          </execution> -->
+          <!-- <execution>
+  <id>default-get</id>
+  <configuration>
+    <buildFlags>
+      <flag>-u</flag>
+    </buildFlags>
+    <packages>
+      <package>github.com/smartystreets/goconvey</package>
+    </packages>
+  </configuration>
+</execution> -->
+<execution>
+  <id>default-test</id>
+  <configuration>
+    <buildFlags>
+      <flag>-v</flag>
+    </buildFlags>
+  </configuration>
+</execution>   
         </executions>
       </plugin>
     </plugins>
