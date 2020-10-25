@@ -78,7 +78,7 @@
                 <main>hello.go</main>
               </packages>
             </configuration>
-          </execution>
+          </execution> -->
           <execution>
             <id>golang-run</id>
             <phase>verify</phase>
@@ -90,7 +90,7 @@
                 <app>hello.go</app>
               </packages>
             </configuration>
-          </execution> -->
+          </execution> 
           <!-- <execution>
   <id>default-get</id>
   <configuration>

@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+const VALUES_SUFFIX string = "values"
+
 type TableValues struct {
 	table_ *Table
 	Rows   [][]string
@@ -35,7 +37,7 @@ func (o *TableValues) Size() int {
 func (o *TableValues) GetCreateTable() (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s_%s_values (", o.table_.Owner, o.table_.Name)
+	fmt.Fprintf(&buffer, "CREATE TABLE %s_%s_%s (", o.table_.Owner, o.table_.Name, VALUES_SUFFIX)
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")
@@ -59,7 +61,7 @@ func (o *TableValues) GetCreateTable() (string, error) {
 func (o *TableValues) GetInsertTable() (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "INSERT INTO %s_%s_values (", o.table_.Owner, o.table_.Name)
+	fmt.Fprintf(&buffer, "INSERT INTO %s_%s_%s (", o.table_.Owner, o.table_.Name, VALUES_SUFFIX)
 	i, j := 0, 0
 	for ; i < len(o.Rows[0])-1; i++ {
 		fmt.Fprintf(&buffer, "colvalue%d,", i)

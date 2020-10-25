@@ -6,19 +6,21 @@ import (
 	"strings"
 )
 
-type TableCols struct {
+const COLNAMES_SUFFIX string = "colnames"
+
+type TableColnames struct {
 	table_ *Table
 	Lang   string   `json:"lang"`
 	Header []string `json:"header"`
 }
 
-func (o *TableCols) String() string {
+func (o *TableColnames) String() string {
 	return fmt.Sprintf("%s;%s;", o.Lang, strings.Join(o.Header, ","))
 }
 
-func NewCols(o *Table, header []string) *TableCols {
+func NewColnames(o *Table, header []string) *TableColnames {
 	o.NCols = len(header)
-	newObj := new(TableCols)
+	newObj := new(TableColnames)
 	newObj.Lang = o.DefLang
 	newObj.table_ = o
 	newObj.Header = header
@@ -36,10 +38,10 @@ func NewCols(o *Table, header []string) *TableCols {
 // 	colname3 VARCHAR(32) NOT NULL,
 // 	PRIMARY KEY ( id )
 //  );
-func (o *TableCols) GetCreateTable() (string, error) {
+func (o *TableColnames) GetCreateTable() (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s_%s_colnames (", o.table_.Owner, o.table_.Name)
+	fmt.Fprintf(&buffer, "CREATE TABLE %s_%s_%s (", o.table_.Owner, o.table_.Name, COLNAMES_SUFFIX)
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")
@@ -59,10 +61,10 @@ func (o *TableCols) GetCreateTable() (string, error) {
 // INSERT INTO mike_ssn_ca_colnames (lang,colname1,colname2,colname3) VALUES
 // ('it','nome','cognome','ssn'),
 // ('en','name','surname','ssn');
-func (o *TableCols) GetInsertTable() (string, error) {
+func (o *TableColnames) GetInsertTable() (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "INSERT INTO %s_%s_colnames (lang", o.table_.Owner, o.table_.Name)
+	fmt.Fprintf(&buffer, "INSERT INTO %s_%s_%s (lang", o.table_.Owner, o.table_.Name, COLNAMES_SUFFIX)
 	for k, _ := range o.Header {
 		fmt.Fprintf(&buffer, ",colname%d", k)
 	}
@@ -76,4 +78,14 @@ func (o *TableCols) GetInsertTable() (string, error) {
 	buffer.WriteString(");")
 
 	return buffer.String(), nil
+}
+
+// GetDeleteTable returns SQL instruction: DELETE <owner>_<name>_colnames ... WHERE lang=
+func (o *TableColnames) GetDeleteTable() (string, error) {
+	return fmt.Sprintf("DELETE %s_%s_%s WHERE lang='%s';",
+		o.table_.Owner,
+		o.table_.Name,
+		COLNAMES_SUFFIX,
+		o.Lang), nil
+
 }

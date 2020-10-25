@@ -21,3 +21,7 @@ if you had Docker running on your local machine, this command download, create a
 
 `go get github.com/go-sql-driver/mysql`
 
+## access to docker via mysql
+
+mysqlsh -h 127.0.0.1 -p secr3tZ -u root
+mysqlsh --user=root --password=secr3tZ --port=3306 --host 127.0.0.1

@@ -12,7 +12,7 @@ import (
 func TestTable(t *testing.T) {
 	jsonFilePath := "examples/table.json"
 	jsonFile, err := os.Open(jsonFilePath)
-	// if we os.Open returns an error then handle it
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -22,11 +22,7 @@ func TestTable(t *testing.T) {
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-	// we initialize our Users array
 	var table models.Table
-
-	// we unmarshal our byteArray which contains our
-	// jsonFile's content into 'table' which we defined above
 	json.Unmarshal(byteValue, &table)
 
 	//  {
@@ -46,7 +42,7 @@ func TestTable(t *testing.T) {
 
 }
 
-func TestTableCols(t *testing.T) {
+func TestTableColnames(t *testing.T) {
 	jsonFilePath := "examples/tablecols.json"
 	jsonFile, err := os.Open(jsonFilePath)
 	// if we os.Open returns an error then handle it
@@ -60,7 +56,7 @@ func TestTableCols(t *testing.T) {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	// we initialize our Users array
-	var tablecols models.TableCols
+	var tablecols models.TableColnames
 
 	// we unmarshal our byteArray which contains our
 	// jsonFile's content into 'table' which we defined above
