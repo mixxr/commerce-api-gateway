@@ -18,3 +18,7 @@ The project is composed by several modules in order to make it scalable, elastic
 - **Storefront** module: it is used by the shoppers, they can search, retrieve data. The data is formatted for humans (eg. html5, csv) or for applications (eg. json, xml)
 - **Identity Manager** module: it is responsible for accounts, plans and subscriptions.
 
+## to RUN
+
+mvn clean install
+- it runs test -v also
