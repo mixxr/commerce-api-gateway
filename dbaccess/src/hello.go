@@ -2,6 +2,7 @@ package main
 
 import (
 	"dataaccess"
+	"dataaccess/impl/mockdatastore"
 	"dataaccess/impl/mydatastore"
 	"dataaccess/models"
 	"fmt"
@@ -33,33 +34,53 @@ func prepareMySQL() *mydatastore.MyDatastore {
 	return myDatastore
 }
 
+func prepareMock() *mockdatastore.MockDatastore {
+
+	dbcfg := mockdatastore.DBConfig{}
+
+	fmt.Println("Connecting to..." + dbcfg.String())
+
+	mockDatastore, err := mockdatastore.NewDatastore(dbcfg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return mockDatastore
+}
+
 func main() {
 	fmt.Printf("Starting Main...\n")
-
-	var myDS dataaccess.IDatastore
-	myDS = prepareMySQL()
-	//table := models.Table
 	var err error
+	var table1 *models.Table
+	var table2 *models.Table
 
-	var table *models.Table
-	table, err = myDS.Read()
+	// Mock DS
+	var mockDS dataaccess.IDatastore
+	mockDS = prepareMock()
+	table1, err = mockDS.ReadTable("service", "micser")
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Read:", table.String())
+	fmt.Println("Read Mock:", table1.String())
 
-	s, _ := table.Colnames.GetCreateTable()
-	fmt.Println("GetCreateTable:", s)
-	s, _ = table.Colnames.GetInsertTable()
-	fmt.Println("GetInsertTable:", s)
-	s, _ = table.Values.GetCreateTable()
-	fmt.Println("GetCreateTable:", s)
-	s, _ = table.Values.GetInsertTable()
-	fmt.Println("GetInsertTable:", s)
+	// MySQL DS
+	var myDS dataaccess.IDatastore
+	myDS = prepareMySQL()
 
-	err = myDS.StoreTable(table)
+	err = myDS.StoreTable(table1)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Store SQL Error:", err)
+	}
+	fmt.Println("Store SQL:", table1)
+
+	name, owner := table1.Name, table1.Owner
+	table2, err = myDS.ReadTable(name, owner)
+
+	if err != nil {
+		fmt.Println("Read SQL Error:", err)
+	} else {
+		fmt.Println("Read SQL:", table2.String())
 	}
 
 	fmt.Println("====END")

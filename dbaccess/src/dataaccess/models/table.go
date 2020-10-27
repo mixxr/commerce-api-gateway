@@ -55,3 +55,14 @@ func (o *Table) GetIncrementTable(nrows int64) (string, error) {
 		o.Owner,
 		o.Name), nil
 }
+
+// GetSelectTable returns:
+// SELECT Id, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE Name='%s' and Owner='%s'
+func GetSelectTable(name string, owner string) (string, error) {
+	if name == "" || owner == "" {
+		return "", fmt.Errorf("table_ select makes no sense because name %s and/or owner %s were empty", name, owner)
+	}
+	return fmt.Sprintf(`SELECT Id, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE Name='%s' and Owner='%s';`,
+		name,
+		owner), nil
+}

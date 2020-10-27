@@ -219,31 +219,61 @@ func (o *MyDatastore) AddValues(t *models.Table) error {
 
 // END Strore functions
 
-func (o *MyDatastore) Read() (*models.Table, error) {
+// START Read() functions
 
-	table := models.Table{
-		Name:    "example",
-		Owner:   "michelangelo190283",
-		DefLang: "it",
-		Tags:    "tag1,tag2",
-		Descr:   "auto FIAT anni 80",
+// ReadTable returns the models.Table without colnames neither values
+func (o *MyDatastore) ReadTable(name string, owner string) (*models.Table, error) {
+	sqlstr, errParam := models.GetSelectTable(name, owner)
+
+	if errParam != nil {
+		return nil, errParam
 	}
-
-	headers := []string{"marca", "modello", "prezzo", "valuta"}
-
-	rows := [][]string{
-		{"fiat", "uno 1.0 fire", "5.000", "lire"},
-		{"fiat", "uno 1.4 TD", "10.000", "lire"},
-		{"fiat", "panda 750 fire", "4.000", "lire"},
-		{"fiat", "127 900", "4.500", "lire"},
-		{"fiat", "128 1.2", "5.500", "lire"},
+	rows, err := o.db.Query(sqlstr)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
 
-	// var cols *models.TableColnames = models.NewColnames(&table, &headers)
-	// var values *models.TableValues = models.NewValues(&table, &rows)
+	table := models.Table{}
+	for rows.Next() {
+		if err = rows.Scan(&table.Id, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows); err != nil {
+			return nil, err
+		}
+	}
+	table.Name = name
+	table.Owner = owner
 
-	table.Colnames = models.NewColnames(&table, headers)
-	table.Values = models.NewValues(&table, rows)
+	// tableColnames, errColnames := o.ReadTableColnames(table.DefLang)
+	// if errColnames != nil {
+	// 	return nil, errColnames
+	// }
+	// table.Colnames = &tableColnames
 
 	return &table, nil
+}
+
+// ReadTableColnames returns the models.TableColnames
+func (o *MyDatastore) ReadTableColnames(lang string) (*models.TableColnames, error) {
+	// sqlstr, errParam := models.GetSelectTableColnames(lang)
+
+	// if errParam != nil {
+	// 	return nil, errParam
+	// }
+	// rows, err := o.db.Query(sqlstr)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rows.Close()
+
+	// tableColnames := models.TableColnames{}
+	// for rows.Next() {
+	// 	if err := rows.Scan(&table.Id, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+	// table.Name = name
+	// table.Owner = owner
+
+	// return &table, nil
+	return nil, nil
 }
