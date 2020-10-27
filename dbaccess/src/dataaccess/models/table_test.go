@@ -113,3 +113,53 @@ func TestTableValues(t *testing.T) {
 	}
 
 }
+
+func TestInitializations(t *testing.T) {
+	// var err error
+	//	rndGen := new(rand.Rand)
+
+	table1 := models.Table{Name: "testservice", Owner: "testowner", DefLang: "it", Descr: "test service", Tags: "test,dummy,golang"}
+
+	header := []string{"test_colname1", "test_colname2", "test_colname3", "test_colname4"} // colnames
+	tableCNs := models.NewColnames(&table1, "", header)
+
+	if tableCNs.Lang != table1.DefLang {
+		t.Errorf("table.deflang is not propagated correctly, got %s, want %s", tableCNs.Lang, table1.DefLang)
+	}
+	if tableCNs.Parent() != &table1 {
+		t.Errorf("table is not propagated correctly, got %s, want %s", tableCNs.Parent(), &table1)
+	}
+	if len(header) != table1.NCols {
+		t.Errorf("table.NCols is not calculated correctly, got %d, want %d", table1.NCols, len(header))
+	}
+
+	tableCNs2 := models.NewColnames(&table1, "de", header)
+	if tableCNs2.Lang != "de" {
+		t.Errorf("table.deflang is not initialized correctly, got %s, want %s", tableCNs.Lang, "de")
+	}
+
+	rows := [][]string{
+		{"fiat", "uno 1.0 fire", "5.000", "lire"},
+		{"fiat", "uno 1.4 TD", "10.000", "lire"},
+		{"fiat", "panda 750 fire", "4.000", "lire"},
+		{"fiat", "127 900", "4.500", "lire"},
+		{"fiat", "128 1.2", "5.500", "lire"},
+	}
+	start := 100
+	count := 5
+	size := 20
+	tableVs := models.NewValues(&table1, start, count, rows)
+
+	if tableVs.Count != len(rows) {
+		t.Errorf("tablevalues.Count is not calculated correctly, got %d, want %d", tableVs.Count, len(rows))
+	}
+	if tableVs.Parent() != &table1 {
+		t.Errorf("table is not propagated correctly, got %s, want %s", tableVs.Parent(), &table1)
+	}
+	if tableVs.Start != start {
+		t.Errorf("table.NCols is not calculated correctly, got %d, want %d", tableVs.Start, start)
+	}
+	if tableVs.Size() != size {
+		t.Errorf("table.Size() is not calculated correctly, got %d, want %d", tableVs.Size(), size)
+	}
+}

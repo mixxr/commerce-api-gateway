@@ -32,6 +32,14 @@ func (o *MockDatastore) StoreTable(t *models.Table) error {
 	return nil
 }
 
+func (o *MockDatastore) StoreTableColnames(t *models.TableColnames) error {
+	return nil
+}
+
+func (o *MockDatastore) StoreTableValues(t *models.TableValues) error {
+	return nil
+}
+
 func (o *MockDatastore) UpdateTable(t *models.Table) error {
 
 	return nil
@@ -60,8 +68,33 @@ func (o *MockDatastore) ReadTable(name string, owner string) (*models.Table, err
 		Descr:   "auto FIAT anni 80",
 	}
 
-	headers := []string{"marca", "modello", "prezzo", "valuta"}
+	// rows := [][]string{
+	// 	{"fiat", "uno 1.0 fire", "5.000", "lire"},
+	// 	{"fiat", "uno 1.4 TD", "10.000", "lire"},
+	// 	{"fiat", "panda 750 fire", "4.000", "lire"},
+	// 	{"fiat", "127 900", "4.500", "lire"},
+	// 	{"fiat", "128 1.2", "5.500", "lire"},
+	// }
 
+	// var cols *models.TableColnames = models.NewColnames(&table, &headers)
+	// var values *models.TableValues = models.NewValues(&table, &rows)
+
+	// table.Colnames = models.NewColnames(&table, headers)
+	// table.Values = models.NewValues(&table, rows)
+
+	return &table, nil
+}
+
+// ReadTableColnames returns the models.TableColnames
+func (o *MockDatastore) ReadTableColnames(t *models.Table, lang string) (*models.TableColnames, error) {
+	headers := []string{"marca", "modello", "prezzo", "valuta"}
+	tableColnames := models.NewColnames(t, lang, headers)
+
+	return tableColnames, nil
+}
+
+// ReadTableValues returns the models.TableValues
+func (o *MockDatastore) ReadTableValues(t *models.Table, start int, count int) (*models.TableValues, error) {
 	rows := [][]string{
 		{"fiat", "uno 1.0 fire", "5.000", "lire"},
 		{"fiat", "uno 1.4 TD", "10.000", "lire"},
@@ -69,12 +102,7 @@ func (o *MockDatastore) ReadTable(name string, owner string) (*models.Table, err
 		{"fiat", "127 900", "4.500", "lire"},
 		{"fiat", "128 1.2", "5.500", "lire"},
 	}
+	tableValues := models.NewValues(t, start, count, rows)
 
-	// var cols *models.TableColnames = models.NewColnames(&table, &headers)
-	// var values *models.TableValues = models.NewValues(&table, &rows)
-
-	table.Colnames = models.NewColnames(&table, headers)
-	table.Values = models.NewValues(&table, rows)
-
-	return &table, nil
+	return tableValues, nil
 }

@@ -13,7 +13,6 @@ type Table struct {
 	DefLang  string `json:"deflang"`
 	NCols    int    `json:"ncols"`
 	NRows    int    `json:"nrows"`
-	Start    int
 	Colnames *TableColnames
 	Values   *TableValues
 }
@@ -65,4 +64,18 @@ func GetSelectTable(name string, owner string) (string, error) {
 	return fmt.Sprintf(`SELECT Id, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE Name='%s' and Owner='%s';`,
 		name,
 		owner), nil
+}
+
+// GetUpdateNCols returns:
+// UPDATE table_ SET ncols=Table.NCols
+// WHERE owner='ooooo' AND name='nnnn'
+func (o *Table) GetUpdateNCols() (string, error) {
+	ncols := o.NCols
+	if ncols <= 0 {
+		return "", fmt.Errorf("table_.ncols update makes no sense because ncols is %d", ncols)
+	}
+	return fmt.Sprintf(`UPDATE table_ SET ncols=%d WHERE owner='%s' AND name='%s';`,
+		ncols,
+		o.Owner,
+		o.Name), nil
 }
