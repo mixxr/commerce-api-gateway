@@ -45,11 +45,11 @@ func (o *MockDatastore) UpdateTable(t *models.Table) error {
 	return nil
 }
 
-func (o *MockDatastore) AddColnames(t *models.Table) error {
+func (o *MockDatastore) AddColnames(t *models.TableColnames) error {
 	return nil
 }
 
-func (o *MockDatastore) AddValues(t *models.Table) error {
+func (o *MockDatastore) AddValues(t *models.TableValues) error {
 
 	return nil
 }

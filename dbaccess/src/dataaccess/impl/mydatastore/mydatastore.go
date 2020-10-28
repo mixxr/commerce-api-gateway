@@ -1,6 +1,7 @@
 package mydatastore
 
 import (
+	"dataaccess/impl/mydatastore/utils"
 	"dataaccess/models"
 	"database/sql"
 	"fmt"
@@ -91,7 +92,7 @@ func (o DBConfig) connect() (*sql.DB, error) {
 func (o *MyDatastore) StoreTable(t *models.Table) error {
 	var sqlstr string
 	var err error
-	sqlstr, err = t.GetInsertTable()
+	sqlstr, err = utils.GetInsertTable(t)
 	if err != nil {
 		return err
 	}
@@ -112,15 +113,15 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 	var sqlstr [3]string
 	var err error
 
-	sqlstr[0], err = t.GetCreateTable()
+	sqlstr[0], err = utils.GetCreateTableColnames(t)
 	if err != nil {
 		return err
 	}
-	sqlstr[1], err = t.GetInsertTable()
+	sqlstr[1], err = utils.GetInsertTableColnames(t)
 	if err != nil {
 		return err
 	}
-	sqlstr[2], err = t.Parent().GetUpdateNCols()
+	sqlstr[2], err = utils.GetUpdateNCols(t.Parent())
 	if err != nil {
 		return err
 	}
@@ -152,11 +153,11 @@ func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 	var sqlstr [2]string
 	var err error
 
-	sqlstr[0], err = t.GetCreateTable()
+	sqlstr[0], err = utils.GetCreateTableValues(t)
 	if err != nil {
 		return err
 	}
-	sqlstr[1], err = t.GetInsertTable()
+	sqlstr[1], err = utils.GetInsertTableValues(t)
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,7 @@ func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 
 // UpdateTable just updates 2 fields of table_: descr, tags
 func (o *MyDatastore) UpdateTable(t *models.Table) error {
-	sql, err := t.GetUpdateTable()
+	sql, err := utils.GetUpdateTable(t)
 	if err != nil {
 		return err
 	}
@@ -195,14 +196,14 @@ func (o *MyDatastore) UpdateTable(t *models.Table) error {
 // if lang exists
 // 		1. delete owner_name_colnames where lang=
 // 1. insert owner_name_colnames (lang, ...)
-func (o *MyDatastore) AddColnames(t *models.Table) error {
+func (o *MyDatastore) AddColnames(t *models.TableColnames) error {
 	var sql1, sql2 string
 	var err error
-	sql1, err = t.Colnames.GetDeleteTable()
+	sql1, err = utils.GetDeleteTableColnames(t)
 	if err != nil {
 		return err
 	}
-	sql2, err = t.Colnames.GetInsertTable()
+	sql2, err = utils.GetInsertTableColnames(t)
 	if err != nil {
 		return err
 	}
@@ -230,10 +231,10 @@ func (o *MyDatastore) AddColnames(t *models.Table) error {
 // AddValues
 // 1. insert owner_name_values
 // 2. update table_ (nrows++)
-func (o *MyDatastore) AddValues(t *models.Table) error {
+func (o *MyDatastore) AddValues(t *models.TableValues) error {
 	var sql1, sql2 string
 	var err error
-	sql1, err = t.Values.GetInsertTable()
+	sql1, err = utils.GetInsertTableValues(t)
 	if err != nil {
 		return err
 	}
@@ -250,7 +251,7 @@ func (o *MyDatastore) AddValues(t *models.Table) error {
 	}
 	nrows, _ := res.RowsAffected()
 
-	sql2, err = t.GetIncrementTable(nrows)
+	sql2, err = utils.GetIncrementTable(t.Parent(), nrows)
 	if err != nil {
 		return err
 	}
@@ -270,7 +271,7 @@ func (o *MyDatastore) AddValues(t *models.Table) error {
 
 // ReadTable returns the models.Table without colnames neither values
 func (o *MyDatastore) ReadTable(name string, owner string) (*models.Table, error) {
-	sqlstr, errParam := models.GetSelectTable(name, owner)
+	sqlstr, errParam := utils.GetSelectTable(name, owner)
 
 	if errParam != nil {
 		return nil, errParam
@@ -303,7 +304,7 @@ func (o *MyDatastore) ReadTable(name string, owner string) (*models.Table, error
 func (o *MyDatastore) ReadTableColnames(t *models.Table, lang string) (*models.TableColnames, error) {
 
 	tableColnames := models.NewColnames(t, lang, nil) // lang=default if empty
-	sqlstr, errParam := tableColnames.GetSelectTable()
+	sqlstr, errParam := utils.GetSelectTableColnames(tableColnames)
 
 	fmt.Println("ReadTableColnames, SQL: ", sqlstr)
 
