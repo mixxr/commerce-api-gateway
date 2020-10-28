@@ -19,6 +19,7 @@ The project is composed by several modules in order to make it scalable, elastic
 - **Identity Manager** module: it is responsible for accounts, plans and subscriptions.
 
 ## to RUN
+`cd dbaccess`
+`mvn clean install`
 
-mvn clean install
 - it runs test -v also
