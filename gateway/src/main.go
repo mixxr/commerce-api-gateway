@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"dataaccess"
@@ -45,10 +46,18 @@ func createRouter() *gin.Engine {
 	return router
 }
 
-func formatAndReturnCSV(table models.ITable, err error, c *gin.Context) {
+func formatAndReturn(table models.ITable, err error, c *gin.Context, format string) {
 	if err == nil {
-		c.String(http.StatusOK, table.String())
+		switch format {
+		case "json":
+			c.JSON(http.StatusOK, gin.H{
+				"message": "TBD",
+			})
+		case "csv":
+			c.String(http.StatusOK, table.String())
+		}
 	} else {
+		// ERROR
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err,
 		})
@@ -61,6 +70,21 @@ func toInt(s string, def int) int {
 		return intVar
 	}
 	return def
+}
+
+func getExt(c *gin.Context, paramname string, defval string) (string, string) {
+	value := c.Param(paramname)
+	i := strings.LastIndex(value, ".")
+	if i < 0 {
+		return value, defval
+	} else {
+		return value[:i], value[i+1:]
+	}
+}
+
+func getInt(c *gin.Context, paramname string, defval int) int {
+	value := c.Param(paramname)
+	return toInt(value, defval)
 }
 
 func main() {
@@ -108,34 +132,33 @@ func main() {
 	{
 		v1.GET("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service := c.Param("service")
+			service, ext := getExt(c, "service", "csv")
 			//var t models.Table{ Name: service, Owner:owner}
 			table, errRead := dal.ReadTable(service, owner)
-			formatAndReturnCSV(table, errRead, c)
+			formatAndReturn(table, errRead, c, ext)
 		})
 		v1.GET("/:owner/:service/colnames/:lang", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
-			lang := c.Param("lang")
+			lang, ext := getExt(c, "lang", "csv")
 			t := models.Table{Name: service, Owner: owner, DefLang: lang}
 			log.Println("Table to search:", t)
 			table, errRead := dal.ReadTableColnames(&t, lang)
 			log.Println("Result:", table)
-			formatAndReturnCSV(table, errRead, c)
+			formatAndReturn(table, errRead, c, ext)
 		})
 		v1.GET("/:owner/:service/values/:start/:count", func(c *gin.Context) {
+			var countNum, startNum int
 			owner := c.Param("owner")
 			service := c.Param("service")
-			start := c.Param("start")
-			count := c.Param("count")
-			var countNum, startNum int
-			startNum = toInt(start, 0)
+			startNum = getInt(c, "start", 0)
+			count, ext := getExt(c, "count", "csv")
 			countNum = toInt(count, -1)
 			t := models.Table{Name: service, Owner: owner}
 			log.Println("Table to search:", t, startNum, countNum)
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
 			log.Println("Result:", table)
-			formatAndReturnCSV(table, errRead, c)
+			formatAndReturn(table, errRead, c, ext)
 		})
 		// CREATE
 		v1.POST("/:owner/:service", func(c *gin.Context) {
