@@ -5,6 +5,8 @@ import (
 	"dataaccess/models"
 	"database/sql"
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -47,6 +49,17 @@ func (o DBConfig) checkDefaults() {
 }
 
 func NewDatastore(o DBConfig) (*MyDatastore, error) {
+	if mainconn == nil {
+		// log
+		file, err := os.OpenFile("dataaccess.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.SetOutput(file)
+
+		log.Println("MyDataStore - SQL DB!")
+	}
 	newObj := new(MyDatastore)
 	var err error
 	newObj.db, err = o.connect()
@@ -75,10 +88,10 @@ func (o DBConfig) connect() (*sql.DB, error) {
 	// Connect and check the server version
 	var version, id string
 	db.QueryRow("SELECT VERSION()").Scan(&version)
-	fmt.Println("Connected to:", version)
+	log.Println("Connected to:", version)
 
 	db.QueryRow("SELECT * from table_").Scan(&id)
-	fmt.Println("Table id:", id)
+	log.Println("Table id:", id)
 
 	mainconn = db
 
@@ -301,12 +314,20 @@ func (o *MyDatastore) ReadTable(name string, owner string) (*models.Table, error
 }
 
 // ReadTableColnames returns the models.TableColnames
-func (o *MyDatastore) ReadTableColnames(t *models.Table, lang string) (*models.TableColnames, error) {
+func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models.TableColnames, error) {
+
+	log.Println("ReadTableColnames, input: ", tin, lang)
+
+	// TODO: it is needed for NCols that is not part of the input. A different SELECT can be done without using fixed fields
+	t, errMain := o.ReadTable(tin.Name, tin.Owner)
+	if errMain != nil {
+		return nil, fmt.Errorf("colnames do not exist for input param: %s", tin.String())
+	}
 
 	tableColnames := models.NewColnames(t, lang, nil) // lang=default if empty
 	sqlstr, errParam := utils.GetSelectTableColnames(tableColnames)
 
-	fmt.Println("ReadTableColnames, SQL: ", sqlstr)
+	log.Println("ReadTableColnames, SQL: ", sqlstr, errParam)
 
 	if errParam != nil {
 		return nil, errParam
@@ -340,6 +361,7 @@ func (o *MyDatastore) ReadTableColnames(t *models.Table, lang string) (*models.T
 		}
 	}
 	if i == 0 {
+		log.Println("colnames do not exist for lang param:", lang)
 		return nil, fmt.Errorf("colnames do not exist for lang param: %s", lang)
 	}
 

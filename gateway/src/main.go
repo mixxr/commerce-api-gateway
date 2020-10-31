@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"dataaccess"
@@ -43,13 +45,42 @@ func createRouter() *gin.Engine {
 	return router
 }
 
+func formatAndReturnCSV(table models.ITable, err error, c *gin.Context) {
+	if err == nil {
+		c.String(http.StatusOK, table.String())
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err,
+		})
+	}
+}
+
+func toInt(s string, def int) int {
+	intVar, err := strconv.Atoi(s)
+	if err == nil {
+		return intVar
+	}
+	return def
+}
+
 func main() {
-	fmt.Println("Starting Main===>\n.")
+
+	// log
+	file, err := os.OpenFile("main.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(file)
+
+	log.Println("Hello world!")
+
+	log.Println("Starting Main===>\n.")
 	mydir, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
-	fmt.Println(mydir)
+	log.Println(mydir)
 
 	// router.Static("/assets", "./assets")
 	// router.StaticFS("/more_static", http.Dir("my_file_system"))
@@ -60,7 +91,7 @@ func main() {
 	var errSQL error
 	dal, errSQL = dataaccess.NewDatastore()
 	if errSQL != nil {
-		fmt.Println("Starting Main===>FATAL ERROR:", errSQL)
+		log.Println("Starting Main===>FATAL ERROR:", errSQL)
 		os.Exit(1)
 	}
 
@@ -78,24 +109,33 @@ func main() {
 		v1.GET("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
-
-			table, _ := dal.ReadTable(service, owner)
-			c.String(http.StatusOK, table.String())
+			//var t models.Table{ Name: service, Owner:owner}
+			table, errRead := dal.ReadTable(service, owner)
+			formatAndReturnCSV(table, errRead, c)
 		})
-		v1.GET("/:owner/:service/:start", func(c *gin.Context) {
-			name := c.Param("owner")
-			action := c.Param("service")
-			start := c.Param("start")
-			message := name + " is " + action + "," + start + ", -1"
-			c.String(http.StatusOK, message)
+		v1.GET("/:owner/:service/colnames/:lang", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			lang := c.Param("lang")
+			t := models.Table{Name: service, Owner: owner, DefLang: lang}
+			log.Println("Table to search:", t)
+			table, errRead := dal.ReadTableColnames(&t, lang)
+			log.Println("Result:", table)
+			formatAndReturnCSV(table, errRead, c)
 		})
-		v1.GET("/:owner/:service/:start/:count", func(c *gin.Context) {
-			name := c.Param("owner")
-			action := c.Param("service")
+		v1.GET("/:owner/:service/values/:start/:count", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
 			start := c.Param("start")
 			count := c.Param("count")
-			message := name + " is " + action + "," + start + "," + count
-			c.String(http.StatusOK, message)
+			var countNum, startNum int
+			startNum = toInt(start, 0)
+			countNum = toInt(count, -1)
+			t := models.Table{Name: service, Owner: owner}
+			log.Println("Table to search:", t, startNum, countNum)
+			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
+			log.Println("Result:", table)
+			formatAndReturnCSV(table, errRead, c)
 		})
 		// CREATE
 		v1.POST("/:owner/:service", func(c *gin.Context) {
@@ -168,15 +208,15 @@ func main() {
 	}
 
 	//go func() {
-	//fmt.Println("====> GO FUNC")
+	//log.Println("====> GO FUNC")
 	if err := srv.ListenAndServeTLS("certs/server.crt", "certs/server.key"); err != nil {
 		if err == http.ErrServerClosed {
-			fmt.Println("graceful service shutdown")
+			log.Println("graceful service shutdown")
 		} else {
-			fmt.Println("service cannot be started: ", err)
+			log.Println("service cannot be started: ", err)
 		}
 	}
 	//}()
 
-	fmt.Println("<==== END")
+	log.Println("<==== END")
 }

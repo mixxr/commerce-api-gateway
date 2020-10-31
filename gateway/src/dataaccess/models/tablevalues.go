@@ -1,7 +1,9 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 )
 
 type TableValues struct {
@@ -28,7 +30,14 @@ func (o *TableValues) Size() int {
 }
 
 func (o *TableValues) String() string {
-	return fmt.Sprintf("%d,%d", o.Start, o.Count)
+	var buffer bytes.Buffer
+
+	for _, row := range o.Rows {
+		str := strings.Join(row, ", ")
+		fmt.Fprintf(&buffer, "%s\n", str)
+	}
+
+	return buffer.String()
 }
 
 func (o *TableValues) Parent() *Table {
