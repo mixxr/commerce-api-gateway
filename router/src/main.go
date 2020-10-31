@@ -81,6 +81,58 @@ func main() {
 			message := name + " is " + action + "," + start + "," + count
 			c.String(http.StatusOK, message)
 		})
+		// CREATE
+		v1.POST("/:owner/:service", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			message := "CREATED service " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+		v1.PUT("/:owner/:service", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			message := "MODIFIED service " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+		v1.POST("/:owner/:service/colnames", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			message := "ADDED colnames to " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+		v1.POST("/:owner/:service/values", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			message := "ADDED values to " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+		// DELETE
+		v1.DELETE("/:owner/:service", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			message := "REMOVED service " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+		// langs = / => all colnames
+		// langs = /it => only it colnames
+		// langs = /it/en/es => it,en and es colnames
+		v1.DELETE("/:owner/:service/colnames/*langs", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			lang := c.Param("langs")
+			message := "REMOVED colnames " + lang + " for " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+		// start =0, count = -1 => ALL rows
+		v1.DELETE("/:owner/:service/values/:start/:count", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service := c.Param("service")
+			start := c.Param("start")
+			count := c.Param("count")
+			message := "REMOVED values from " + start + " count=" + count + " for " + service + ", by " + owner
+			c.String(http.StatusOK, message)
+		})
+
 	}
 
 	srv := &http.Server{
