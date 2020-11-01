@@ -86,12 +86,13 @@ func (o DBConfig) connect() (*sql.DB, error) {
 	}
 
 	// Connect and check the server version
-	var version, id string
+	var version string
+	var tot int64
 	db.QueryRow("SELECT VERSION()").Scan(&version)
 	log.Println("Connected to:", version)
 
-	db.QueryRow("SELECT * from table_").Scan(&id)
-	log.Println("Table id:", id)
+	db.QueryRow("SELECT count(*) as tot from table_").Scan(&tot)
+	log.Println("DB contains tables:", tot)
 
 	mainconn = db
 
@@ -369,15 +370,69 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 }
 
 // ReadTableValues returns the models.TableValues
-func (o *MyDatastore) ReadTableValues(t *models.Table, start int, count int) (*models.TableValues, error) {
-	rows := [][]string{
-		{"fiat", "uno 1.0 fire", "5.000", "lire"},
-		{"fiat", "uno 1.4 TD", "10.000", "lire"},
-		{"fiat", "panda 750 fire", "4.000", "lire"},
-		{"fiat", "127 900", "4.500", "lire"},
-		{"fiat", "128 1.2", "5.500", "lire"},
-	}
-	tableValues := models.NewValues(t, start, count, rows)
+func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (*models.TableValues, error) {
 
-	return tableValues, nil
+	log.Println("ReadTableValues, input: ", tin, start, count)
+
+	// TODO: it is needed for NCols that is not part of the input. A different SELECT can be done without using fixed fields
+	t, errMain := o.ReadTable(tin.Name, tin.Owner)
+	if errMain != nil {
+		return nil, fmt.Errorf("values do not exist for input param: %s", tin.String())
+	}
+	tableValues := models.NewValues(t, start, count, nil)
+	sqlstr, errParam := utils.GetSelectTableValues(tableValues)
+
+	log.Println("ReadTableValues, SQL: ", sqlstr, errParam)
+
+	if errParam != nil {
+		return nil, errParam
+	}
+	// real tot amount of selected rows
+	var totRows int64
+	sqlCount := fmt.Sprintf("SELECT count(*) as tot from %s WHERE id>=%d AND id<%d", //LIMIT %d;",
+		utils.GetTableValuesName(tableValues),
+		tableValues.Start,
+		tableValues.Start+tableValues.Count)
+	o.db.QueryRow(sqlCount).Scan(&totRows)
+	log.Println("ReadTableValues, SQL: ", sqlCount, totRows)
+	if totRows > 0 {
+		// values
+		rows, err := o.db.Query(sqlstr)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		columns, errCols := rows.Columns()
+		if errCols != nil {
+			return nil, errCols
+		}
+		totCols := len(columns)
+
+		values := make([]interface{}, totCols)
+		valuePtrs := make([]interface{}, totCols)
+
+		tableValues.Rows = make([][]string, totRows)
+		for r := int64(0); r < totRows; r++ {
+			tableValues.Rows[r] = make([]string, totCols)
+		}
+		j := 0
+		for rows.Next() {
+			for i := 0; i < totCols; i++ {
+				valuePtrs[i] = &values[i]
+			}
+			rows.Scan(valuePtrs...)
+			for i := 0; i < totCols; i++ {
+				tableValues.Rows[j][i] = string(values[i].([]byte))
+			}
+			j++
+		}
+		tableValues.Count = int(totRows) // TODO: make Count field as int64
+
+		return tableValues, nil
+
+	}
+	log.Println("values do not exist for params:", tin)
+	return nil, fmt.Errorf("values do not exist for params: %s", tin)
+
 }

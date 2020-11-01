@@ -9,24 +9,24 @@ CREATE TABLE mike_ssn_ca_colnames (
    id BIGINT NOT NULL AUTO_INCREMENT,
    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
    lang CHAR(2),
+   colname0 VARCHAR(32) NOT NULL,
    colname1 VARCHAR(32) NOT NULL,
    colname2 VARCHAR(32) NOT NULL,
-   colname0 VARCHAR(32) NOT NULL,
    PRIMARY KEY ( id )
 );
-INSERT INTO mike_ssn_ca_colnames (lang,colname1,colname2,colname0) VALUES
+INSERT INTO mike_ssn_ca_colnames (lang,colname0,colname1,colname2) VALUES
 ('it','nome','cognome','ssn'),
 ('en','name','surname','ssn');
 
 CREATE TABLE mike_ssn_ca_values (
    id BIGINT NOT NULL AUTO_INCREMENT,
    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   colvalue1 VARCHAR(256) NOT NULL,
-   colvalue2 VARCHAR(256) NOT NULL,
-   colvalue0 VARCHAR(256) NOT NULL,
+   value0 VARCHAR(256) NOT NULL,
+   value1 VARCHAR(256) NOT NULL,
+   value2 VARCHAR(256) NOT NULL,
    PRIMARY KEY ( id )
 );
-INSERT INTO mike_ssn_ca_values (colvalue1,colvalue2,colvalue0) VALUES
+INSERT INTO mike_ssn_ca_values (value0,value1,value2) VALUES
 ('mike','douglàs','3897428934EWREW'),
 ('äbel','òmar ópël','3897428934EWREW'),
 ('anthony','di martino','234234FSAFSADF');
@@ -36,26 +36,26 @@ CREATE TABLE anthony_ssn_ca_colnames (
    id BIGINT NOT NULL AUTO_INCREMENT,
    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
    lang CHAR(2),
+   colname0 VARCHAR(32) NOT NULL,
    colname1 VARCHAR(32) NOT NULL,
    colname2 VARCHAR(32) NOT NULL,
    colname3 VARCHAR(32) NOT NULL,
-   colname0 VARCHAR(32) NOT NULL,
    PRIMARY KEY ( id )
 );
-INSERT INTO anthony_ssn_ca_colnames (lang,colname1,colname2,colname3,colname0) VALUES
+INSERT INTO anthony_ssn_ca_colnames (lang,colname0,colname1,colname2,colname3) VALUES
 ('it','nome','cognome','sesso','ssn'),
 ('en','name','surname','gender','ssn');
 
 CREATE TABLE anthony_ssn_ca_values (
    id BIGINT NOT NULL AUTO_INCREMENT,
    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-   colvalue1 VARCHAR(256) NOT NULL,
-   colvalue2 VARCHAR(256) NOT NULL,
-   colvalue3 VARCHAR(256) NOT NULL,
-   colvalue0 VARCHAR(256) NOT NULL,
+   value0 VARCHAR(256) NOT NULL,
+   value1 VARCHAR(256) NOT NULL,
+   value2 VARCHAR(256) NOT NULL,
+   value3 VARCHAR(256) NOT NULL,
    PRIMARY KEY ( id )
 );
-INSERT INTO anthony_ssn_ca_values (colvalue1,colvalue2,colvalue3,colvalue0) VALUES
+INSERT INTO anthony_ssn_ca_values (value0,value1,value2,value3) VALUES
 ('mike','douglàs','male','3897428934EWREW'),
 ('äbel','òmar ópël','male','3897428934EWREW'),
 ('zoe','di martino','female','93749823ASFSAFD');

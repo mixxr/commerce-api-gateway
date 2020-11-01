@@ -151,7 +151,7 @@ func main() {
 			var countNum, startNum int
 			owner := c.Param("owner")
 			service := c.Param("service")
-			startNum = getInt(c, "start", 0)
+			startNum = getInt(c, "start", 1)
 			count, ext := getExt(c, "count", "csv")
 			countNum = toInt(count, -1)
 			t := models.Table{Name: service, Owner: owner}

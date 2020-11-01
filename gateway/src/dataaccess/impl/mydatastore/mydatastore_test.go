@@ -135,20 +135,22 @@ func TestMyDatastoreRead(t *testing.T) {
 
 	// values
 	var tableValues *models.TableValues
-	start, count := 0, 5
+	start, count := 1, 50
 	tableValues, err = myDS.ReadTableValues(table1, start, count)
 	if err != nil {
 		t.Errorf("ReadTableValues Error: %s", err)
-	}
-	fmt.Println("ReadTableValues SQL:", tableValues)
+	} else {
+		fmt.Println("ReadTableValues SQL:", tableValues)
 
-	if tableValues.Start != start {
-		t.Errorf("ReadTableValues Start is not correct, got %d, want %d", tableValues.Start, start)
+		if tableValues.Start != start {
+			t.Errorf("ReadTableValues Start is not correct, got %d, want %d", tableValues.Start, start)
+		}
+		if len(tableValues.Rows) > count || len(tableValues.Rows) != tableValues.Count {
+			t.Errorf("ReadTableValues count with %d as param is not correct, got %d, want %d", count, len(tableValues.Rows), tableValues.Count)
+		}
+		if tableValues.Rows[tableValues.Count-1][table1.NCols-1] != "lire" {
+			t.Errorf("ReadTableValues Rows[last][last] is not correct, got %s, want %s", tableValues.Rows[tableValues.Count-1][table1.NCols-1], "lire")
+		}
 	}
-	if len(tableValues.Rows) > count || len(tableValues.Rows) != tableValues.Count {
-		t.Errorf("ReadTableValues count with %d as param is not correct, got %d, want %d", count, len(tableValues.Rows), tableValues.Count)
-	}
-	if tableValues.Rows[tableValues.Count-1][table1.NCols-1] != "lire" {
-		t.Errorf("ReadTableValues Rows[last][last] is not correct, got %s, want %s", tableValues.Rows[tableValues.Count-1][table1.NCols-1], "lire")
-	}
+
 }

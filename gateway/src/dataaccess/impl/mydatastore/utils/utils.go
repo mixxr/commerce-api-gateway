@@ -166,7 +166,15 @@ func GetSelectTableColnames(o *models.TableColnames) (string, error) {
 
 // =========== TableValues
 
-const VALUES_SUFFIX string = "values"
+const VALUE_SUFFIX string = "value"
+
+func GetTableValuesName(o *models.TableValues) string {
+	if o.Parent() == nil || o.Parent().Owner == "" || o.Parent().Name == "" {
+		// TODO: exception propagation ?
+		return "" //, fmt.Errorf("table name not defined, pls set table_: %s", o.Parent())
+	}
+	return fmt.Sprintf("%s_%s_%ss", o.Parent().Owner, o.Parent().Name, VALUE_SUFFIX)
+}
 
 // returns SQL instruction: CREATE TABLE <owner>_<name>_values ...
 // example
@@ -181,13 +189,13 @@ const VALUES_SUFFIX string = "values"
 func GetCreateTableValues(o *models.TableValues) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s_%s_%s (", o.Parent().Owner, o.Parent().Name, VALUES_SUFFIX)
+	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableValuesName(o))
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")
 
 	for k := 0; k < len(o.Rows[0]); k++ {
-		fmt.Fprintf(&buffer, "colvalue%d VARCHAR(256) NOT NULL,", k)
+		fmt.Fprintf(&buffer, "%s%d VARCHAR(256) NOT NULL,", VALUE_SUFFIX, k)
 	}
 
 	buffer.WriteString("PRIMARY KEY ( id ));")
@@ -205,12 +213,12 @@ func GetCreateTableValues(o *models.TableValues) (string, error) {
 func GetInsertTableValues(o *models.TableValues) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "INSERT INTO %s_%s_%s (", o.Parent().Owner, o.Parent().Name, VALUES_SUFFIX)
+	fmt.Fprintf(&buffer, "INSERT INTO %s (", GetTableValuesName(o))
 	i, j := 0, 0
 	for ; i < len(o.Rows[0])-1; i++ {
-		fmt.Fprintf(&buffer, "colvalue%d,", i)
+		fmt.Fprintf(&buffer, "%s%d,", VALUE_SUFFIX, i)
 	}
-	fmt.Fprintf(&buffer, "colvalue%d) VALUES ", i)
+	fmt.Fprintf(&buffer, "%s%d) VALUES ", VALUE_SUFFIX, i)
 	i = 0
 	for ; i < len(o.Rows)-1; i++ {
 		buffer.WriteString("(")
@@ -226,6 +234,35 @@ func GetInsertTableValues(o *models.TableValues) (string, error) {
 		fmt.Fprintf(&buffer, "'%s',", o.Rows[i][j])
 	}
 	fmt.Fprintf(&buffer, "'%s');", o.Rows[i][j])
+
+	return buffer.String(), nil
+}
+
+func GetSelectTableValues(o *models.TableValues) (string, error) {
+	if o.Parent() == nil {
+		return "", fmt.Errorf("cannot define a SELECT with table_=nil")
+	}
+	if o.Start <= 0 {
+		return "", fmt.Errorf("cannot define a SELECT with start<=0")
+	}
+	if o.Count <= 0 {
+		return "", fmt.Errorf("cannot define a SELECT with count<=0")
+	}
+	if o.Parent().NCols <= 0 {
+		return "", fmt.Errorf("cannot define a SELECT with NCols<=0")
+	}
+
+	var buffer bytes.Buffer
+
+	buffer.WriteString("SELECT ")
+	for i := 0; i < o.Parent().NCols-1; i++ {
+		fmt.Fprintf(&buffer, "%s%d,", VALUE_SUFFIX, i)
+	}
+	fmt.Fprintf(&buffer, "%s%d", VALUE_SUFFIX, o.Parent().NCols-1)
+	fmt.Fprintf(&buffer, " FROM %s WHERE id>=%d AND id<%d", //LIMIT %d;",
+		GetTableValuesName(o),
+		o.Start,
+		o.Count+o.Start)
 
 	return buffer.String(), nil
 }
