@@ -19,7 +19,10 @@ The project is composed by several modules in order to make it scalable, elastic
 - **Identity Manager** module: it is responsible for accounts, plans and subscriptions.
 
 ## to RUN
-`cd dbaccess`
+- MariaDB docker is needed (or a local installation). The project provides a Dockerfile at location: scripts/mariadb/Dockerfile
+- when the docker is up then execute the gateway:
+`cd gateway`
+
 `mvn clean install`
 
 - it runs test -v also
