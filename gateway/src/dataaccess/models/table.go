@@ -17,6 +17,13 @@ type Table struct {
 	Values   *TableValues
 }
 
+func (o *Table) IsEmpty() bool {
+	return o.Owner == "" &&
+		o.Name == "" &&
+		o.Descr == "" &&
+		o.Tags == ""
+}
+
 func (o *Table) String() string {
 	return fmt.Sprintf("'%s','%s','%s','%s','%s',%d,%d", o.DefLang, o.Owner, o.Name, o.Descr, o.Tags, o.NCols, o.NRows)
 }

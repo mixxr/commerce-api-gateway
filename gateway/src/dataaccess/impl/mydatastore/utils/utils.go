@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"dataaccess/models"
 	"fmt"
+	"strings"
 )
 
 // =============== table
@@ -42,8 +43,36 @@ func GetUpdateTable(o *models.Table) (string, error) {
 		o.Name), nil
 }
 
-// GetSelectTable returns:
-// SELECT Id, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE Name='%s' and Owner='%s'
+// GetSelectSearchTable returns:
+// SELECT Id, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE Name like '%s<name>%s' and Owner like '%s<ownwer>%s' and ...
+func GetSelectSearchTable(tin *models.Table) (string, error) {
+	if tin.IsEmpty() {
+		return "", fmt.Errorf("service search makes no sense because all parameters empty")
+	}
+
+	var where []string
+
+	if tin.Name != "" && tin.Name != "-" {
+		tin.Name = strings.Replace(tin.Name, "-", "%", 1)
+		tin.Name = strings.ReplaceAll(tin.Name, "_", "\\_")
+		where = append(where, fmt.Sprintf("name like '%s'", tin.Name))
+	}
+	if tin.Owner != "" && tin.Owner != "-" {
+		tin.Owner = strings.Replace(tin.Owner, "-", "%", 1)
+		tin.Owner = strings.ReplaceAll(tin.Owner, "_", "\\_")
+		where = append(where, fmt.Sprintf("owner like '%s'", tin.Owner))
+	}
+	if tin.Descr != "" && tin.Descr != "-" {
+		tin.Descr = strings.ReplaceAll(tin.Descr, "-", "%")
+		tin.Descr = strings.ReplaceAll(tin.Descr, "_", "\\_")
+		tin.Descr = strings.ReplaceAll(tin.Descr, " ", "_") // replace spaces with wildcard _
+		where = append(where, fmt.Sprintf("descr like '%s'", tin.Descr))
+	}
+
+	return fmt.Sprintf(`SELECT Id, Owner, Name, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE %s;`,
+		strings.Join(where, " AND ")), nil
+}
+
 func GetSelectTable(name string, owner string) (string, error) {
 	if name == "" || owner == "" {
 		return "", fmt.Errorf("table_ select makes no sense because name %s and/or owner %s were empty", name, owner)
@@ -242,8 +271,8 @@ func GetSelectTableValues(o *models.TableValues) (string, error) {
 	if o.Parent() == nil {
 		return "", fmt.Errorf("cannot define a SELECT with table_=nil")
 	}
-	if o.Start <= 0 {
-		return "", fmt.Errorf("cannot define a SELECT with start<=0")
+	if o.Start < 0 {
+		return "", fmt.Errorf("cannot define a SELECT with start<0")
 	}
 	if o.Count <= 0 {
 		return "", fmt.Errorf("cannot define a SELECT with count<=0")
@@ -259,10 +288,10 @@ func GetSelectTableValues(o *models.TableValues) (string, error) {
 		fmt.Fprintf(&buffer, "%s%d,", VALUE_SUFFIX, i)
 	}
 	fmt.Fprintf(&buffer, "%s%d", VALUE_SUFFIX, o.Parent().NCols-1)
-	fmt.Fprintf(&buffer, " FROM %s WHERE id>=%d AND id<%d", //LIMIT %d;",
+	fmt.Fprintf(&buffer, " FROM %s LIMIT %d, %d;",
 		GetTableValuesName(o),
 		o.Start,
-		o.Count+o.Start)
+		o.Count)
 
 	return buffer.String(), nil
 }

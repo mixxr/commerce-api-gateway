@@ -100,8 +100,8 @@ func TestMyDatastoreRead(t *testing.T) {
 	myDS = prepareMySQL()
 
 	// table_
-
-	table1, err = myDS.ReadTable(name, owner)
+	tin := models.Table{Name: name, Owner: owner}
+	table1, err = myDS.ReadTable(&tin)
 	if err != nil {
 		t.Errorf("ReadTable Error: %s", err)
 	}
@@ -135,7 +135,7 @@ func TestMyDatastoreRead(t *testing.T) {
 
 	// values
 	var tableValues *models.TableValues
-	start, count := 1, 50
+	start, count := 0, 50
 	tableValues, err = myDS.ReadTableValues(table1, start, count)
 	if err != nil {
 		t.Errorf("ReadTableValues Error: %s", err)

@@ -29,7 +29,8 @@ func TestMockDatastore(t *testing.T) {
 	var table1 *models.Table
 	var mockDS dataaccess.IDatastore
 	mockDS = prepareMock()
-	table1, err = mockDS.ReadTable("service", "micser")
+	tin := models.Table{Name: "service", Owner: "micser"}
+	table1, err = mockDS.ReadTable(&tin)
 	if err != nil {
 		fmt.Println(err)
 	}

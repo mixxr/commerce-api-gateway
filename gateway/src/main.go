@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -12,8 +13,13 @@ import (
 
 	"dataaccess"
 	"dataaccess/models"
+	"router/utils"
 
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	VALUES_MAX_COUNT int = 1000
 )
 
 func createRouter() *gin.Engine {
@@ -46,7 +52,7 @@ func createRouter() *gin.Engine {
 	return router
 }
 
-func formatAndReturn(table models.ITable, err error, c *gin.Context, format string) {
+func formatAndReturn(tables []models.ITable, err error, c *gin.Context, format string) {
 	if err == nil {
 		switch format {
 		case "json":
@@ -54,12 +60,17 @@ func formatAndReturn(table models.ITable, err error, c *gin.Context, format stri
 				"message": "TBD",
 			})
 		case "csv":
-			c.String(http.StatusOK, table.String())
+			var buffer bytes.Buffer
+
+			for _, t := range tables {
+				fmt.Fprintf(&buffer, "%s\n", t.String())
+			}
+			c.String(http.StatusOK, buffer.String())
 		}
 	} else {
 		// ERROR
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err,
+			"message": err.Error(),
 		})
 	}
 }
@@ -119,6 +130,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// utils
+	sanitizer := utils.NewSanitizer()
+
 	// router
 	router := createRouter() //gin.Default()
 
@@ -130,12 +144,32 @@ func main() {
 
 	v1 := router.Group("/services/v1")
 	{
+		// eg. /abc/123/search/an_interesting_service/tag1/tag2/tag3
+		// eg. /abc*/123*/search/an_interesting_service/tag1/tag2/tag3
+		v1.GET("/:owner/:service/search/:descr/*tags", func(c *gin.Context) {
+			owner := sanitizer.GetSearchToken(c.Param("owner"))     // can ends with -
+			service := sanitizer.GetSearchToken(c.Param("service")) // can ends with -
+			descr := sanitizer.GetDescr(c.Param("descr"))
+			tags, ext := getExt(c, "tags", "csv")
+			tags = sanitizer.GetTags(tags)
+			//if owner != "" || service != "" || owner != "" || service != "" {
+			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags}
+			log.Println("Search:", tin)
+			tables, errRead := dal.ReadTables(&tin)
+			log.Println("Result n.tables=", len(tables))
+			formatAndReturn(models.ConvertToITables(tables), errRead, c, ext)
+		})
 		v1.GET("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
-			//var t models.Table{ Name: service, Owner:owner}
-			table, errRead := dal.ReadTable(service, owner)
-			formatAndReturn(table, errRead, c, ext)
+			if owner, service = sanitizer.CheckTokens(owner, service); owner != "" && service != "" {
+				tin := models.Table{Name: service, Owner: owner}
+				table, errRead := dal.ReadTable(&tin)
+				formatAndReturn([]models.ITable{table}, errRead, c, ext)
+			} else {
+				formatAndReturn(nil, fmt.Errorf("owner and service names have to be alphanumeric, use _ in place of spaces"), c, "json")
+			}
+
 		})
 		v1.GET("/:owner/:service/colnames/:lang", func(c *gin.Context) {
 			owner := c.Param("owner")
@@ -145,20 +179,20 @@ func main() {
 			log.Println("Table to search:", t)
 			table, errRead := dal.ReadTableColnames(&t, lang)
 			log.Println("Result:", table)
-			formatAndReturn(table, errRead, c, ext)
+			formatAndReturn([]models.ITable{table}, errRead, c, ext)
 		})
 		v1.GET("/:owner/:service/values/:start/:count", func(c *gin.Context) {
 			var countNum, startNum int
 			owner := c.Param("owner")
 			service := c.Param("service")
-			startNum = getInt(c, "start", 1)
+			startNum = getInt(c, "start", 0)
 			count, ext := getExt(c, "count", "csv")
-			countNum = toInt(count, -1)
+			countNum = toInt(count, VALUES_MAX_COUNT)
 			t := models.Table{Name: service, Owner: owner}
 			log.Println("Table to search:", t, startNum, countNum)
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
 			log.Println("Result:", table)
-			formatAndReturn(table, errRead, c, ext)
+			formatAndReturn([]models.ITable{table}, errRead, c, ext)
 		})
 		// CREATE
 		v1.POST("/:owner/:service", func(c *gin.Context) {

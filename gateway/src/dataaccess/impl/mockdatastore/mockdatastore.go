@@ -55,8 +55,13 @@ func (o *MockDatastore) AddValues(t *models.TableValues) error {
 }
 
 // END Strore functions
+func (o *MockDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
+	return nil, fmt.Errorf("TBD")
+}
 
-func (o *MockDatastore) ReadTable(name string, owner string) (*models.Table, error) {
+func (o *MockDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
+	name := tin.Name
+	owner := tin.Owner
 
 	name = fmt.Sprintf("%s%d", name, o.rndGen.Intn(1000))
 

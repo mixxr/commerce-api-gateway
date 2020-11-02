@@ -12,7 +12,8 @@ type IDatastore interface {
 	AddColnames(t *models.TableColnames) error // add additional entry in <table>_colnames
 	AddValues(t *models.TableValues) error     // add additional entries in <table>_values
 	// read
-	ReadTable(name string, owner string) (*models.Table, error)
+	ReadTables(*models.Table) ([]*models.Table, error)
+	ReadTable(*models.Table) (*models.Table, error)
 	ReadTableColnames(o *models.Table, lang string) (*models.TableColnames, error)
 	ReadTableValues(t *models.Table, start int, count int) (*models.TableValues, error)
 	// delete

@@ -283,8 +283,38 @@ func (o *MyDatastore) AddValues(t *models.TableValues) error {
 
 // START Read() functions
 
+// ReadTables returns  []models.Table without colnames neither values
+func (o *MyDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
+	sqlstr, errParam := utils.GetSelectSearchTable(tin)
+	log.Println("ReadTables, input: ", tin, sqlstr)
+
+	if errParam != nil {
+		return nil, errParam
+	}
+	rows, err := o.db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tables []*models.Table
+
+	for rows.Next() {
+		table := models.Table{}
+		if err = rows.Scan(&table.Id, &table.Owner, &table.Name, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows); err != nil {
+			return nil, err
+		}
+		log.Println("ReadTables, table: ", table)
+		tables = append(tables, &table)
+	}
+
+	return tables, nil
+}
+
 // ReadTable returns the models.Table without colnames neither values
-func (o *MyDatastore) ReadTable(name string, owner string) (*models.Table, error) {
+func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
+	name := tin.Name
+	owner := tin.Owner
 	sqlstr, errParam := utils.GetSelectTable(name, owner)
 
 	if errParam != nil {
@@ -320,7 +350,7 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 	log.Println("ReadTableColnames, input: ", tin, lang)
 
 	// TODO: it is needed for NCols that is not part of the input. A different SELECT can be done without using fixed fields
-	t, errMain := o.ReadTable(tin.Name, tin.Owner)
+	t, errMain := o.ReadTable(tin)
 	if errMain != nil {
 		return nil, fmt.Errorf("colnames do not exist for input param: %s", tin.String())
 	}
@@ -375,7 +405,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (
 	log.Println("ReadTableValues, input: ", tin, start, count)
 
 	// TODO: it is needed for NCols that is not part of the input. A different SELECT can be done without using fixed fields
-	t, errMain := o.ReadTable(tin.Name, tin.Owner)
+	t, errMain := o.ReadTable(tin)
 	if errMain != nil {
 		return nil, fmt.Errorf("values do not exist for input param: %s", tin.String())
 	}
@@ -389,10 +419,10 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (
 	}
 	// real tot amount of selected rows
 	var totRows int64
-	sqlCount := fmt.Sprintf("SELECT count(*) as tot from %s WHERE id>=%d AND id<%d", //LIMIT %d;",
+	sqlCount := fmt.Sprintf("SELECT count(*) as tot from %s LIMIT %d,%d;",
 		utils.GetTableValuesName(tableValues),
 		tableValues.Start,
-		tableValues.Start+tableValues.Count)
+		tableValues.Count)
 	o.db.QueryRow(sqlCount).Scan(&totRows)
 	log.Println("ReadTableValues, SQL: ", sqlCount, totRows)
 	if totRows > 0 {
