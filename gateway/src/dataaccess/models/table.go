@@ -24,6 +24,14 @@ func (o *Table) IsEmpty() bool {
 		o.Tags == ""
 }
 
+func (o *Table) IsValid() bool {
+	return o.Owner != "" &&
+		o.Name != "" &&
+		o.Descr != "" &&
+		o.NCols >= 0 &&
+		o.NRows >= 0
+}
+
 func (o *Table) String() string {
 	return fmt.Sprintf("'%s','%s','%s','%s','%s',%d,%d", o.DefLang, o.Owner, o.Name, o.Descr, o.Tags, o.NCols, o.NRows)
 }

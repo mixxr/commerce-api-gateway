@@ -40,6 +40,16 @@ func (o *TableValues) String() string {
 	return buffer.String()
 }
 
+func (o *TableValues) SetParent(t *Table) {
+	o.table_ = t
+}
+
 func (o *TableValues) Parent() *Table {
 	return o.table_
+}
+
+func (o *TableValues) IsValid() bool {
+	return o.Start >= 0 &&
+		len(o.Rows) > 0 &&
+		o.table_ != nil
 }

@@ -1,8 +1,9 @@
 {
         "id": "",
-        "name":"bicycle",
+        "name":"bicycle3",
         "owner": "sam",
         "deflang": "en",
         "descr": "bicycle models for summer 2020",
-        "tags": "summer,2020"
+        "tags": "summer,2020",
+        "ncols": 5
 }

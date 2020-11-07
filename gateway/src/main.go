@@ -196,42 +196,57 @@ func main() {
 		})
 		// CREATE
 		v1.POST("/:owner/:service", func(c *gin.Context) {
+			owner := c.Param("owner")
+			service, ext := getExt(c, "service", "csv")
 			var tableJson models.Table
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
-
-			if tableJson.Name == "" || tableJson.Owner == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{"status": "name or owner is empty"})
+			if tableJson.Name != service || tableJson.Owner != owner {
+				c.JSON(http.StatusBadRequest, gin.H{"status": "service or owner does not match the url"})
 				return
 			}
-			message := "CREATED service " + tableJson.Name + ", by " + tableJson.Owner
-			c.String(http.StatusOK, message)
+			err = dal.StoreTable(&tableJson)
+			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
 		})
 		v1.PUT("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service := c.Param("service")
-			message := "MODIFIED service " + service + ", by " + owner
+			service, ext := getExt(c, "service", "csv")
+			message := "MODIFIED service " + service + ", by " + owner + ext
 			c.String(http.StatusOK, message)
 		})
 		v1.POST("/:owner/:service/colnames", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service := c.Param("service")
-			message := "ADDED colnames to " + service + ", by " + owner
-			c.String(http.StatusOK, message)
+			service, ext := getExt(c, "service", "csv")
+			var tableJson models.TableColnames
+			if err := c.ShouldBindJSON(&tableJson); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			tableJson.SetParent(&models.Table{Name: service, Owner: owner})
+
+			err = dal.StoreTableColnames(&tableJson)
+			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
 		})
 		v1.POST("/:owner/:service/values", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service := c.Param("service")
-			message := "ADDED values to " + service + ", by " + owner
-			c.String(http.StatusOK, message)
+			service, ext := getExt(c, "service", "csv")
+			var tableJson models.TableValues
+			if err := c.ShouldBindJSON(&tableJson); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			tableJson.SetParent(&models.Table{Name: service, Owner: owner})
+
+			err = dal.StoreTableValues(&tableJson)
+			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
 		})
 		// DELETE
 		v1.DELETE("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service := c.Param("service")
-			message := "REMOVED service " + service + ", by " + owner
+			service, ext := getExt(c, "service", "csv")
+			message := "REMOVED service " + service + ", by " + owner + ext
 			c.String(http.StatusOK, message)
 		})
 		// langs = / => all colnames

@@ -104,6 +104,9 @@ func (o DBConfig) connect() (*sql.DB, error) {
 // StoreTable adds 1 row as
 // 1. insert into table_
 func (o *MyDatastore) StoreTable(t *models.Table) error {
+	if !t.IsValid() {
+		return fmt.Errorf("service cannot be created for this params: %s", t.String())
+	}
 	var sqlstr string
 	var err error
 	sqlstr, err = utils.GetInsertTable(t)
@@ -124,6 +127,9 @@ func (o *MyDatastore) StoreTable(t *models.Table) error {
 // 2. insert into owner_name_colnames
 // 3. update NCols in table_
 func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
+	if !t.IsValid() {
+		return fmt.Errorf("colnames cannot be created for this params: %s", t.String())
+	}
 	var sqlstr [3]string
 	var err error
 
@@ -164,6 +170,9 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 // 2. insert into owner_name_values
 // 3. TODO: GetIncrementTable(affectedRows)
 func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
+	if !t.IsValid() {
+		return fmt.Errorf("values cannot be stored for this params: %s", t.Parent())
+	}
 	var sqlstr [2]string
 	var err error
 
