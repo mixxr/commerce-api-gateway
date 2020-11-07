@@ -99,7 +99,7 @@ func (o *MockDatastore) ReadTableColnames(t *models.Table, lang string) (*models
 }
 
 // ReadTableValues returns the models.TableValues
-func (o *MockDatastore) ReadTableValues(t *models.Table, start int, count int) (*models.TableValues, error) {
+func (o *MockDatastore) ReadTableValues(t *models.Table, start int, count int64) (*models.TableValues, error) {
 	rows := [][]string{
 		{"fiat", "uno 1.0 fire", "5.000", "lire"},
 		{"fiat", "uno 1.4 TD", "10.000", "lire"},
@@ -110,4 +110,8 @@ func (o *MockDatastore) ReadTableValues(t *models.Table, start int, count int) (
 	tableValues := models.NewValues(t, start, count, rows)
 
 	return tableValues, nil
+}
+
+func (o *MockDatastore) DeleteTable(*models.Table) error {
+	return nil
 }

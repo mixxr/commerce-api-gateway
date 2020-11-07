@@ -9,18 +9,18 @@ import (
 type TableValues struct {
 	table_ *Table
 	Start  int
-	Count  int
+	Count  int64
 	Rows   [][]string
 }
 
-func NewValues(t *Table, start int, count int, rows [][]string) *TableValues {
+func NewValues(t *Table, start int, count int64, rows [][]string) *TableValues {
 	newObj := new(TableValues)
 	newObj.table_ = t
 	newObj.Start = start
 	newObj.Count = count
 	if rows != nil {
 		newObj.Rows = rows
-		newObj.Count = len(rows)
+		//newObj.Count = len(rows) cannot assign, Count is used as control field upon SQL operation
 	}
 	return newObj
 }

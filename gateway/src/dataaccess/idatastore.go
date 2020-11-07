@@ -15,7 +15,8 @@ type IDatastore interface {
 	ReadTables(*models.Table) ([]*models.Table, error)
 	ReadTable(*models.Table) (*models.Table, error)
 	ReadTableColnames(o *models.Table, lang string) (*models.TableColnames, error)
-	ReadTableValues(t *models.Table, start int, count int) (*models.TableValues, error)
+	ReadTableValues(t *models.Table, start int, count int64) (*models.TableValues, error)
 	// delete
 	// TODO: delete functions
+	DeleteTable(*models.Table) error
 }

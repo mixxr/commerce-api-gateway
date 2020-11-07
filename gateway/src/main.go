@@ -83,6 +83,14 @@ func toInt(s string, def int) int {
 	return def
 }
 
+func toInt64(s string, def int64) int64 {
+	intVar, err := strconv.ParseInt(s, 10, 64)
+	if err == nil {
+		return intVar
+	}
+	return def
+}
+
 func getExt(c *gin.Context, paramname string, defval string) (string, string) {
 	value := c.Param(paramname)
 	i := strings.LastIndex(value, ".")
@@ -182,12 +190,13 @@ func main() {
 			formatAndReturn([]models.ITable{table}, errRead, c, ext)
 		})
 		v1.GET("/:owner/:service/values/:start/:count", func(c *gin.Context) {
-			var countNum, startNum int
+			var startNum int
+			var countNum int64
 			owner := c.Param("owner")
 			service := c.Param("service")
 			startNum = getInt(c, "start", 0)
 			count, ext := getExt(c, "count", "csv")
-			countNum = toInt(count, VALUES_MAX_COUNT)
+			countNum = toInt64(count, int64(VALUES_MAX_COUNT))
 			t := models.Table{Name: service, Owner: owner}
 			log.Println("Table to search:", t, startNum, countNum)
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
@@ -216,22 +225,25 @@ func main() {
 			message := "MODIFIED service " + service + ", by " + owner + ext
 			c.String(http.StatusOK, message)
 		})
-		v1.POST("/:owner/:service/colnames", func(c *gin.Context) {
+		v1.POST("/:owner/:service/colnames/:lang", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service, ext := getExt(c, "service", "csv")
+			service := c.Param("service")
+			lang, ext := getExt(c, "lang", "csv")
 			var tableJson models.TableColnames
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
+			tableJson.Lang = lang
 			tableJson.SetParent(&models.Table{Name: service, Owner: owner})
 
 			err = dal.StoreTableColnames(&tableJson)
 			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
 		})
+		// RETURN: number of affected rows in json format
 		v1.POST("/:owner/:service/values", func(c *gin.Context) {
 			owner := c.Param("owner")
-			service, ext := getExt(c, "service", "csv")
+			service := c.Param("service")
 			var tableJson models.TableValues
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -240,14 +252,20 @@ func main() {
 			tableJson.SetParent(&models.Table{Name: service, Owner: owner})
 
 			err = dal.StoreTableValues(&tableJson)
-			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"count": tableJson.Count})
+			return
 		})
 		// DELETE
 		v1.DELETE("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
-			message := "REMOVED service " + service + ", by " + owner + ext
-			c.String(http.StatusOK, message)
+			t := models.Table{Name: service, Owner: owner}
+			err = dal.DeleteTable(&t)
+			formatAndReturn([]models.ITable{&t}, err, c, ext) // TODO: StatusAccepted 202
 		})
 		// langs = / => all colnames
 		// langs = /it => only it colnames
@@ -257,7 +275,7 @@ func main() {
 			service := c.Param("service")
 			lang := c.Param("langs")
 			message := "REMOVED colnames " + lang + " for " + service + ", by " + owner
-			c.String(http.StatusOK, message)
+			c.String(http.StatusAccepted, message)
 		})
 		// start =0, count = -1 => ALL rows
 		v1.DELETE("/:owner/:service/values/:start/:count", func(c *gin.Context) {

@@ -26,3 +26,18 @@ The project is composed by several modules in order to make it scalable, elastic
 `mvn clean install`
 
 - it runs test -v also
+
+## URL examples
+
+```
+curl -d "@table.json" -X POST https://localhost:8443/services/v1/samurl/bicycleurl.csv -ik
+curl -d "@tablecols.en.json" -X POST https://localhost:8443/services/v1/samurl/bicycleurl/colnames/en -ik
+curl -d "@tablevalues.json" -X POST https://localhost:8443/services/v1/samurl/bicycleurl/values -ik
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/colnames/it
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/colnames/en
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/10
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/1/10
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/1
+curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/0
+```

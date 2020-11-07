@@ -148,9 +148,9 @@ func TestInitializations(t *testing.T) {
 	start := 100
 	count := 5
 	size := 20
-	tableVs := models.NewValues(&table1, start, count, rows)
+	tableVs := models.NewValues(&table1, start, int64(count), rows)
 
-	if tableVs.Count != len(rows) {
+	if tableVs.Count != int64(len(rows)) {
 		t.Errorf("tablevalues.Count is not calculated correctly, got %d, want %d", tableVs.Count, len(rows))
 	}
 	if tableVs.Parent() != &table1 {

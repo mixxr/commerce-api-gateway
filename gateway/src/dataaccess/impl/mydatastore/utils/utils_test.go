@@ -38,7 +38,7 @@ func prepareData() {
 		{"fiat", "127 900", "4.500", "lire"},
 		{"fiat", "128 1.2", "5.500", "lire"},
 	}
-	tableValues = models.NewValues(table, start, count, rows)
+	tableValues = models.NewValues(table, start, int64(count), rows)
 
 }
 

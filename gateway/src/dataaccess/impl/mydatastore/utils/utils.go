@@ -22,6 +22,14 @@ func GetIncrementTable(o *models.Table, nrows int64) (string, error) {
 		o.Name), nil
 }
 
+// GetSelectNRows returns:
+// SELECT NRows as tot from table_ WHERE owner='%s' AND name='%s'
+func GetSelectNRows(tin *models.Table) (string, error) {
+	return fmt.Sprintf(`SELECT NRows as tot from table_ WHERE owner='%s' AND name='%s';`,
+		tin.Owner,
+		tin.Name), nil
+}
+
 // GetInsertTable returns:
 // INSERT INTO table_ (deflang,owner,name,descr,tags,ncols,nrows) VALUES
 // ('it','mike','ssn_ca','Security Social Number, State of California','ssn,ca,california,wellfare',3,3),
@@ -100,12 +108,12 @@ func GetUpdateNCols(o *models.Table) (string, error) {
 
 const COLNAME_SUFFIX string = "colname"
 
-func GetTableColnamesName(o *models.TableColnames) string {
-	if o.Parent() == nil || o.Parent().Owner == "" || o.Parent().Name == "" {
+func GetTableColnamesName(o *models.Table) string {
+	if o == nil || o.Owner == "" || o.Name == "" {
 		// TODO: exception propagation ?
 		return "" //, fmt.Errorf("table name not defined, pls set table_: %s", o.Parent())
 	}
-	return fmt.Sprintf("%s_%s_%ss", o.Parent().Owner, o.Parent().Name, COLNAME_SUFFIX)
+	return fmt.Sprintf("%s_%s_%ss", o.Owner, o.Name, COLNAME_SUFFIX)
 }
 
 // returns SQL instruction: CREATE TABLE <owner>_<name>_colnames ...
@@ -122,7 +130,7 @@ func GetTableColnamesName(o *models.TableColnames) string {
 func GetCreateTableColnames(o *models.TableColnames) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableColnamesName(o))
+	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableColnamesName(o.Parent()))
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")
@@ -145,7 +153,7 @@ func GetCreateTableColnames(o *models.TableColnames) (string, error) {
 func GetInsertTableColnames(o *models.TableColnames) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "INSERT INTO %s (lang", GetTableColnamesName(o))
+	fmt.Fprintf(&buffer, "INSERT INTO %s (lang", GetTableColnamesName(o.Parent()))
 	for k, _ := range o.Header {
 		fmt.Fprintf(&buffer, ",%s%d", COLNAME_SUFFIX, k)
 	}
@@ -163,8 +171,8 @@ func GetInsertTableColnames(o *models.TableColnames) (string, error) {
 
 // GetDeleteTable returns SQL instruction: DELETE <owner>_<name>_colnames ... WHERE lang=
 func GetDeleteTableColnames(o *models.TableColnames) (string, error) {
-	return fmt.Sprintf("DELETE %s WHERE lang='%s';",
-		GetTableColnamesName(o),
+	return fmt.Sprintf("DELETE FROM %s WHERE lang='%s';",
+		GetTableColnamesName(o.Parent()),
 		o.Lang), nil
 
 }
@@ -187,7 +195,7 @@ func GetSelectTableColnames(o *models.TableColnames) (string, error) {
 		fmt.Fprintf(&buffer, ",%s%d", COLNAME_SUFFIX, i)
 	}
 	fmt.Fprintf(&buffer, " FROM %s WHERE lang='%s';",
-		GetTableColnamesName(o),
+		GetTableColnamesName(o.Parent()),
 		o.Lang)
 
 	return buffer.String(), nil
@@ -197,12 +205,12 @@ func GetSelectTableColnames(o *models.TableColnames) (string, error) {
 
 const VALUE_SUFFIX string = "value"
 
-func GetTableValuesName(o *models.TableValues) string {
-	if o.Parent() == nil || o.Parent().Owner == "" || o.Parent().Name == "" {
+func GetTableValuesName(o *models.Table) string {
+	if o == nil || o.Owner == "" || o.Name == "" {
 		// TODO: exception propagation ?
 		return "" //, fmt.Errorf("table name not defined, pls set table_: %s", o.Parent())
 	}
-	return fmt.Sprintf("%s_%s_%ss", o.Parent().Owner, o.Parent().Name, VALUE_SUFFIX)
+	return fmt.Sprintf("%s_%s_%ss", o.Owner, o.Name, VALUE_SUFFIX)
 }
 
 // returns SQL instruction: CREATE TABLE <owner>_<name>_values ...
@@ -218,7 +226,7 @@ func GetTableValuesName(o *models.TableValues) string {
 func GetCreateTableValues(o *models.TableValues) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableValuesName(o))
+	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableValuesName(o.Parent()))
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")
@@ -242,7 +250,7 @@ func GetCreateTableValues(o *models.TableValues) (string, error) {
 func GetInsertTableValues(o *models.TableValues) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "INSERT INTO %s (", GetTableValuesName(o))
+	fmt.Fprintf(&buffer, "INSERT INTO %s (", GetTableValuesName(o.Parent()))
 	i, j := 0, 0
 	for ; i < len(o.Rows[0])-1; i++ {
 		fmt.Fprintf(&buffer, "%s%d,", VALUE_SUFFIX, i)
@@ -275,7 +283,7 @@ func GetSelectTableValues(o *models.TableValues) (string, error) {
 		return "", fmt.Errorf("cannot define a SELECT with start<0")
 	}
 	if o.Count <= 0 {
-		return "", fmt.Errorf("cannot define a SELECT with count<=0")
+		return "", fmt.Errorf("cannot define a SELECT with count less than 0")
 	}
 	if o.Parent().NCols <= 0 {
 		return "", fmt.Errorf("cannot define a SELECT with NCols<=0")
@@ -289,9 +297,24 @@ func GetSelectTableValues(o *models.TableValues) (string, error) {
 	}
 	fmt.Fprintf(&buffer, "%s%d", VALUE_SUFFIX, o.Parent().NCols-1)
 	fmt.Fprintf(&buffer, " FROM %s LIMIT %d, %d;",
-		GetTableValuesName(o),
+		GetTableValuesName(o.Parent()),
 		o.Start,
 		o.Count)
 
 	return buffer.String(), nil
+}
+
+// DELETE
+
+// GetDropTables DROP both <owner>_<name>_colnames and <owner>_<name>_values in NOWAIT
+func GetDropTables(o *models.Table) (string, error) {
+	return fmt.Sprintf("DROP TABLE IF EXISTS %s, %s NOWAIT;",
+		GetTableColnamesName(o),
+		GetTableValuesName(o)), nil
+}
+
+func GetDeleteTable(o *models.Table) (string, error) {
+	return fmt.Sprintf("DELETE FROM table_ WHERE owner='%s' AND name='%s';",
+		o.Owner,
+		o.Name), nil
 }

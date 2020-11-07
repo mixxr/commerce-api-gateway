@@ -133,6 +133,8 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 	var sqlstr [3]string
 	var err error
 
+	t.Parent().NCols = len(t.Header)
+
 	sqlstr[0], err = utils.GetCreateTableColnames(t)
 	if err != nil {
 		return err
@@ -168,7 +170,7 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 // StoreTableValues in a Transaction:
 // 1. create table owner_name_values
 // 2. insert into owner_name_values
-// 3. TODO: GetIncrementTable(affectedRows)
+// 3. update table_ with GetIncrementTable(affectedRows)
 func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 	if !t.IsValid() {
 		return fmt.Errorf("values cannot be stored for this params: %s", t.Parent())
@@ -190,18 +192,43 @@ func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 	if err != nil {
 		return err
 	}
+	t.Count = 0
 
-	for _, stmt := range sqlstr {
-
-		_, err = tx.Exec(stmt)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
+	// CREATE TABLE IF DOES NOT EXISTS
+	_, err = tx.Exec(sqlstr[0])
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// INSERT ROWS
+	res, errINS := tx.Exec(sqlstr[1])
+	if errINS != nil {
+		tx.Rollback()
+		return errINS
+	}
+	var affectedRows int64
+	affectedRows, errINS = res.RowsAffected()
+	if errINS != nil {
+		tx.Rollback()
+		return errINS
+	}
+	// UPDATE table_ by affectedRows
+	sqlUpdate, errUPD := utils.GetIncrementTable(t.Parent(), affectedRows)
+	if errUPD != nil {
+		tx.Rollback()
+		return errUPD
+	}
+	_, errUPD = tx.Exec(sqlUpdate)
+	if errUPD != nil {
+		tx.Rollback()
+		return errUPD
 	}
 
-	return tx.Commit()
+	if err = tx.Commit(); err == nil {
+		t.Count = affectedRows
+	}
+
+	return err
 }
 
 // UpdateTable just updates 2 fields of table_: descr, tags
@@ -409,7 +436,7 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 }
 
 // ReadTableValues returns the models.TableValues
-func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (*models.TableValues, error) {
+func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64) (*models.TableValues, error) {
 
 	log.Println("ReadTableValues, input: ", tin, start, count)
 
@@ -428,13 +455,13 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (
 	}
 	// real tot amount of selected rows
 	var totRows int64
-	sqlCount := fmt.Sprintf("SELECT count(*) as tot from %s LIMIT %d,%d;",
-		utils.GetTableValuesName(tableValues),
-		tableValues.Start,
-		tableValues.Count)
+	sqlCount, _ := utils.GetSelectNRows(tin)
 	o.db.QueryRow(sqlCount).Scan(&totRows)
-	log.Println("ReadTableValues, SQL: ", sqlCount, totRows)
+	fmt.Println("ReadTableValues, SQL, result, count: ", sqlCount, totRows, count)
 	if totRows > 0 {
+		if totRows > count {
+			totRows = count // this allocates always the min(available #rows, requested #rows)
+		}
 		// values
 		rows, err := o.db.Query(sqlstr)
 		if err != nil {
@@ -466,7 +493,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (
 			}
 			j++
 		}
-		tableValues.Count = int(totRows) // TODO: make Count field as int64
+		tableValues.Count = totRows
 
 		return tableValues, nil
 
@@ -474,4 +501,42 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int) (
 	log.Println("values do not exist for params:", tin)
 	return nil, fmt.Errorf("values do not exist for params: %s", tin)
 
+}
+
+// DELETE functions
+
+// DeleteTable in a Transaction:
+// 1. delete the table_ row
+// 2. DROP owner_name_colnames
+// 3. DROP owner_name_values
+func (o *MyDatastore) DeleteTable(t *models.Table) error {
+	var sqlstr [2]string
+	var err error
+
+	sqlstr[0], err = utils.GetDeleteTable(t)
+	if err != nil {
+		return err
+	}
+	sqlstr[1], err = utils.GetDropTables(t)
+	if err != nil {
+		return err
+	}
+
+	// Transaction starts
+	tx, err := o.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, stmt := range sqlstr {
+
+		_, err = tx.Exec(stmt)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+	}
+
+	return tx.Commit()
 }
