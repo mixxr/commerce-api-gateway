@@ -273,18 +273,26 @@ func main() {
 		v1.DELETE("/:owner/:service/colnames/*langs", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
-			lang := c.Param("langs")
-			message := "REMOVED colnames " + lang + " for " + service + ", by " + owner
-			c.String(http.StatusAccepted, message)
+			langs, ext := getExt(c, "langs", "csv")
+			langs = strings.Trim(langs, "/")
+			t := models.Table{Name: service, Owner: owner}
+			err = dal.DeleteTableColnames(&t, strings.Split(langs, "/"))
+			formatAndReturn([]models.ITable{&t}, err, c, ext) // TODO: StatusAccepted 202
+			return
 		})
-		// start =0, count = -1 => ALL rows
-		v1.DELETE("/:owner/:service/values/:start/:count", func(c *gin.Context) {
+		// count = 0 => ALL rows
+		// count > 0 => TOP rows
+		// count < 0 => BOTTOM rows
+		v1.DELETE("/:owner/:service/values/*count", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
-			start := c.Param("start")
-			count := c.Param("count")
-			message := "REMOVED values from " + start + " count=" + count + " for " + service + ", by " + owner
-			c.String(http.StatusOK, message)
+			//startNum := getInt(c, "start", 0)
+			count, _ := getExt(c, "count", "csv")
+			countNum := toInt64(count, 0)
+			t := models.Table{Name: service, Owner: owner}
+			err = dal.DeleteTableValues(&t, countNum)
+			c.JSON(http.StatusAccepted, gin.H{"count": t.NRows})
+			return
 		})
 
 	}

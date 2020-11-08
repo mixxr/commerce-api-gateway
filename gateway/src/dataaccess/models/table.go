@@ -12,7 +12,7 @@ type Table struct {
 	Tags     string `json:"tags"`
 	DefLang  string `json:"deflang"`
 	NCols    int    `json:"ncols"`
-	NRows    int    `json:"nrows"`
+	NRows    int64  `json:"nrows"`
 	Colnames *TableColnames
 	Values   *TableValues
 }

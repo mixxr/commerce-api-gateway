@@ -9,3 +9,8 @@ curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/10
 curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/1/10
 curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/1
 curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/0
+curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/colnames/en
+curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/values/2
+curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/values/-2
+curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/values/
+curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl

@@ -249,7 +249,7 @@ func (o *MyDatastore) UpdateTable(t *models.Table) error {
 func (o *MyDatastore) AddColnames(t *models.TableColnames) error {
 	var sql1, sql2 string
 	var err error
-	sql1, err = utils.GetDeleteTableColnames(t)
+	sql1, err = utils.GetDeleteTableColnames(t.Parent(), []string{t.Lang})
 	if err != nil {
 		return err
 	}
@@ -539,4 +539,67 @@ func (o *MyDatastore) DeleteTable(t *models.Table) error {
 	}
 
 	return tx.Commit()
+}
+
+func (o *MyDatastore) DeleteTableColnames(t *models.Table, langs []string) error {
+	sqlstr, err := utils.GetDeleteTableColnames(t, langs)
+	if err != nil {
+		return err
+	}
+	_, err = o.db.Exec(sqlstr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteTableValues in TX
+// 1. delete rows
+// 2. update nrows
+// t.NRows returns the affectedRows counter
+func (o *MyDatastore) DeleteTableValues(t *models.Table, count int64) error {
+	sqlstr, err := utils.GetDeleteTableValues(t, count)
+	if err != nil {
+		return err
+	}
+	// Transaction starts
+	tx, err := o.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// DELETE ROWS
+	res, errDEL := tx.Exec(sqlstr)
+	if errDEL != nil {
+		tx.Rollback()
+		log.Println("DeleteTableValues, Rows ERROR:", errDEL)
+		return errDEL
+	}
+	var affectedRows int64
+	affectedRows, errDEL = res.RowsAffected()
+	if errDEL != nil {
+		tx.Rollback()
+		log.Println("DeleteTableValues, RowsAffected ERROR:", errDEL)
+		return errDEL
+	}
+	// UPDATE table_ by affectedRows
+	sqlUpdate, errUPD := utils.GetIncrementTable(t, -affectedRows)
+	if errUPD != nil {
+		tx.Rollback()
+		log.Println("DeleteTableValues, Update SQL ERROR:", errUPD)
+		return errUPD
+	}
+	_, errUPD = tx.Exec(sqlUpdate)
+	if errUPD != nil {
+		tx.Rollback()
+		log.Println("DeleteTableValues, Update ERROR:", errUPD)
+		return errUPD
+	}
+
+	if err = tx.Commit(); err == nil {
+		t.NRows = affectedRows
+	}
+
+	return err
 }

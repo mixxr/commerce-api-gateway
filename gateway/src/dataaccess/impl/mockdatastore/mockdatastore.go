@@ -115,3 +115,11 @@ func (o *MockDatastore) ReadTableValues(t *models.Table, start int, count int64)
 func (o *MockDatastore) DeleteTable(*models.Table) error {
 	return nil
 }
+
+func (o *MockDatastore) DeleteTableColnames(t *models.Table, langs []string) error {
+	return nil
+}
+
+func (o *MockDatastore) DeleteTableValues(t *models.Table, count int64) error {
+	return nil
+}

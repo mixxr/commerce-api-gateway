@@ -13,10 +13,16 @@ import (
 // UPDATE table_ SET nrows+=<param>
 // WHERE owner='ooooo' AND name='nnnn'
 func GetIncrementTable(o *models.Table, nrows int64) (string, error) {
-	if nrows <= 0 {
-		return "", fmt.Errorf("table_.nrows update makes no sense because rows added were %d", nrows)
+	if nrows == 0 {
+		return "", fmt.Errorf("table_.nrows update makes no sense because rows added are 0")
 	}
-	return fmt.Sprintf(`UPDATE table_ SET nrows=nrows+%d WHERE owner='%s' AND name='%s';`,
+	operation := "+"
+	if nrows < 0 {
+		operation = "-"
+		nrows = -nrows
+	}
+	return fmt.Sprintf(`UPDATE table_ SET nrows=nrows%s%d WHERE owner='%s' AND name='%s';`,
+		operation,
 		nrows,
 		o.Owner,
 		o.Name), nil
@@ -169,13 +175,13 @@ func GetInsertTableColnames(o *models.TableColnames) (string, error) {
 	return buffer.String(), nil
 }
 
-// GetDeleteTable returns SQL instruction: DELETE <owner>_<name>_colnames ... WHERE lang=
-func GetDeleteTableColnames(o *models.TableColnames) (string, error) {
-	return fmt.Sprintf("DELETE FROM %s WHERE lang='%s';",
-		GetTableColnamesName(o.Parent()),
-		o.Lang), nil
+// // GetDeleteTable returns SQL instruction: DELETE <owner>_<name>_colnames ... WHERE lang=
+// func GetDeleteTableColnames(o *models.TableColnames) (string, error) {
+// 	return fmt.Sprintf("DELETE FROM %s WHERE lang='%s';",
+// 		GetTableColnamesName(o.Parent()),
+// 		o.Lang), nil
 
-}
+// }
 
 func GetSelectTableColnames(o *models.TableColnames) (string, error) {
 	if o.Parent() == nil {
@@ -314,7 +320,34 @@ func GetDropTables(o *models.Table) (string, error) {
 }
 
 func GetDeleteTable(o *models.Table) (string, error) {
-	return fmt.Sprintf("DELETE FROM table_ WHERE owner='%s' AND name='%s';",
+	return fmt.Sprintf("DELETE QUICK FROM table_ WHERE owner='%s' AND name='%s';",
 		o.Owner,
 		o.Name), nil
+}
+
+func GetDeleteTableColnames(o *models.Table, langs []string) (string, error) {
+	var buffer bytes.Buffer
+	if len(langs) > 0 {
+		for i, lang := range langs {
+			langs[i] = fmt.Sprintf("'%s'", lang)
+		}
+		fmt.Fprintf(&buffer, " WHERE lang IN (%s);", strings.Join(langs, ","))
+	}
+	return fmt.Sprintf("DELETE QUICK FROM %s %s;",
+		GetTableColnamesName(o),
+		buffer.String()), nil
+}
+
+func GetDeleteTableValues(o *models.Table, count int64) (string, error) {
+	var buffer bytes.Buffer
+	if count != 0 {
+		if count < 0 {
+			count = -count
+			buffer.WriteString(" ORDER BY id DESC")
+		}
+		fmt.Fprintf(&buffer, " LIMIT %d;", count)
+	}
+	return fmt.Sprintf("DELETE FROM %s %s;",
+		GetTableValuesName(o),
+		buffer.String()), nil
 }

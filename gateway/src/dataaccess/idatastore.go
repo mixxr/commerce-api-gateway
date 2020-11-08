@@ -19,4 +19,6 @@ type IDatastore interface {
 	// delete
 	// TODO: delete functions
 	DeleteTable(*models.Table) error
+	DeleteTableColnames(*models.Table, []string) error
+	DeleteTableValues(*models.Table, int64) error
 }
