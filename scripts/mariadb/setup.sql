@@ -12,9 +12,11 @@ CREATE TABLE IF NOT EXISTS table_ (
    name VARCHAR(32) NOT NULL,
    descr VARCHAR(256) NOT NULL DEFAULT '',
    tags VARCHAR(256) NOT NULL DEFAULT '',
+   status SMALLINT NOT NULL DEFAULT 0,
    PRIMARY KEY ( id ),
    UNIQUE KEY ( owner, name )
 );
 
 CREATE INDEX table_index_desc ON table_( descr );
 CREATE INDEX table_index_tags ON table_( tags );
+CREATE INDEX table_index_status ON table_( status );

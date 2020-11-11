@@ -133,8 +133,6 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 	var sqlstr [3]string
 	var err error
 
-	t.Parent().NCols = len(t.Header)
-
 	sqlstr[0], err = utils.GetCreateTableColnames(t)
 	if err != nil {
 		return err
@@ -164,7 +162,12 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 
 	}
 
-	return tx.Commit()
+	errCOMM := tx.Commit()
+	if errCOMM != nil {
+		t.Parent().NCols = len(t.Header)
+	}
+
+	return errCOMM
 }
 
 // StoreTableValues in a Transaction:
@@ -231,15 +234,41 @@ func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 	return err
 }
 
-// UpdateTable just updates 2 fields of table_: descr, tags
+// UpdateTable table_
+// checks if exists and if status changes
 func (o *MyDatastore) UpdateTable(t *models.Table) error {
-	sql, err := utils.GetUpdateTable(t)
+	tOld, errREAD := o.ReadTable(t)
+	if errREAD != nil {
+		return errREAD
+	}
+	sql, errSQL := utils.GetUpdateTable(t)
+	if errSQL != nil {
+		return errSQL
+	}
+
+	// Transaction starts
+	tx, err := o.db.Begin()
 	if err != nil {
 		return err
 	}
-	_, err = o.db.Exec(sql)
+	_, err = tx.Exec(sql)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if tOld.Status != t.Status {
+		sqlRename, errREN := utils.GetRenameTables(tOld, t.Status)
+		if errREN != nil {
+			return errREN
+		}
+		_, err = tx.Exec(sqlRename)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
-	return err
+	return tx.Commit()
 }
 
 // AddColnames does in a Transaction:
@@ -351,7 +380,11 @@ func (o *MyDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
 func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 	name := tin.Name
 	owner := tin.Owner
-	sqlstr, errParam := utils.GetSelectTable(name, owner)
+	// status := models.StatusEnabled
+	// if tin.IsOwner() {
+	// 	status = models.StatusDraft
+	// }
+	sqlstr, errParam := utils.GetSelectTable(name, owner, tin.Status)
 
 	if errParam != nil {
 		return nil, errParam
@@ -364,7 +397,7 @@ func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 
 	table := models.Table{}
 	for rows.Next() {
-		if err = rows.Scan(&table.Id, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows); err != nil {
+		if err = rows.Scan(&table.Id, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows, &table.Status); err != nil {
 			return nil, err
 		}
 	}

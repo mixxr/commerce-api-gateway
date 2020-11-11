@@ -106,6 +106,38 @@ func getInt(c *gin.Context, paramname string, defval int) int {
 	return toInt(value, defval)
 }
 
+// AuthRequired is a simple middleware to check the session
+func AuthRequired(c *gin.Context) {
+
+	username, password, hasAuth := c.Request.BasicAuth()
+
+	// TODO: check username/password
+	// if hasAuth && username == "testuser" && password == "testpass" {
+	// 	log.WithFields(log.Fields{
+	// 		"user": username,
+	// 	}).Info("User authenticated")
+	// } else {
+	// 	c.Abort()
+	// 	c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
+	// 	return
+	// }
+	log.Println("Authentication:", username, password, hasAuth)
+
+	c.Set("username", username)
+
+	// Continue down the chain to handler etc
+	c.Next()
+}
+
+func getStatus(c *gin.Context, owner string) int {
+	username := c.GetString("username")
+	log.Println("getStatus:", username)
+	if username == owner {
+		return models.StatusDraft
+	}
+	return models.StatusEnabled
+}
+
 func main() {
 
 	// log
@@ -151,6 +183,8 @@ func main() {
 	})
 
 	v1 := router.Group("/services/v1")
+	//tables := v1.Group("/:owner/:service")
+	v1.Use(AuthRequired)
 	{
 		// eg. /abc/123/search/an_interesting_service/tag1/tag2/tag3
 		// eg. /abc*/123*/search/an_interesting_service/tag1/tag2/tag3
@@ -160,8 +194,9 @@ func main() {
 			descr := sanitizer.GetDescr(c.Param("descr"))
 			tags, ext := getExt(c, "tags", "csv")
 			tags = sanitizer.GetTags(tags)
+			status := getStatus(c, owner)
 			//if owner != "" || service != "" || owner != "" || service != "" {
-			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags}
+			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags, Status: status}
 			log.Println("Search:", tin)
 			tables, errRead := dal.ReadTables(&tin)
 			log.Println("Result n.tables=", len(tables))
@@ -170,8 +205,9 @@ func main() {
 		v1.GET("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
+			status := getStatus(c, owner)
 			if owner, service = sanitizer.CheckTokens(owner, service); owner != "" && service != "" {
-				tin := models.Table{Name: service, Owner: owner}
+				tin := models.Table{Name: service, Owner: owner, Status: status}
 				table, errRead := dal.ReadTable(&tin)
 				formatAndReturn([]models.ITable{table}, errRead, c, ext)
 			} else {
@@ -183,7 +219,8 @@ func main() {
 			owner := c.Param("owner")
 			service := c.Param("service")
 			lang, ext := getExt(c, "lang", "csv")
-			t := models.Table{Name: service, Owner: owner, DefLang: lang}
+			status := getStatus(c, owner)
+			t := models.Table{Name: service, Owner: owner, DefLang: lang, Status: status}
 			log.Println("Table to search:", t)
 			table, errRead := dal.ReadTableColnames(&t, lang)
 			log.Println("Result:", table)
@@ -197,7 +234,7 @@ func main() {
 			startNum = getInt(c, "start", 0)
 			count, ext := getExt(c, "count", "csv")
 			countNum = toInt64(count, int64(VALUES_MAX_COUNT))
-			t := models.Table{Name: service, Owner: owner}
+			t := models.Table{Name: service, Owner: owner, Status: models.StatusEnabled}
 			log.Println("Table to search:", t, startNum, countNum)
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
 			log.Println("Result:", table)
@@ -222,8 +259,17 @@ func main() {
 		v1.PUT("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
-			message := "MODIFIED service " + service + ", by " + owner + ext
-			c.String(http.StatusOK, message)
+			var tableJson models.Table
+			if err := c.ShouldBindJSON(&tableJson); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			if tableJson.Name != service || tableJson.Owner != owner {
+				c.JSON(http.StatusBadRequest, gin.H{"status": "service or owner does not match the url"})
+				return
+			}
+			err = dal.UpdateTable(&tableJson)
+			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
 		})
 		v1.POST("/:owner/:service/colnames/:lang", func(c *gin.Context) {
 			owner := c.Param("owner")

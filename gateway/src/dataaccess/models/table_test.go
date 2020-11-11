@@ -39,6 +39,9 @@ func TestTable(t *testing.T) {
 	if table.Owner != "sam" {
 		t.Errorf("table.owner, got %s, want %s", table.Owner, "sam")
 	}
+	if !models.IsValidStatus(table.Status) {
+		t.Errorf("table.Status, got %d, want valid status", table.Status)
+	}
 
 }
 

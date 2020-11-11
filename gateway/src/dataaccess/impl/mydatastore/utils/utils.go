@@ -40,19 +40,20 @@ func GetSelectNRows(tin *models.Table) (string, error) {
 // INSERT INTO table_ (deflang,owner,name,descr,tags,ncols,nrows) VALUES
 // ('it','mike','ssn_ca','Security Social Number, State of California','ssn,ca,california,wellfare',3,3),
 func GetInsertTable(o *models.Table) (string, error) {
-	return fmt.Sprintf(`INSERT INTO table_ (deflang,owner,name,descr,tags,ncols,nrows) VALUES(%s);`,
+	return fmt.Sprintf(`INSERT INTO table_ (deflang,owner,name,descr,tags,ncols,nrows,status) VALUES(%s);`,
 		o.String()), nil
 }
 
 // GetUpdateTable returns:
-// UPDATE table_ SET descr='xxx',tags='yyyy',ncols=d,nrows=d
+// UPDATE table_ SET descr='xxx',tags='yyyy',ncols=d,nrows=d, status
 // WHERE owner='ooooo' AND name='nnnn'
 func GetUpdateTable(o *models.Table) (string, error) {
-	return fmt.Sprintf(`UPDATE table_ SET descr='%s',tags='%s',ncols=%d,nrows=%d WHERE owner='%s' AND name='%s';`,
+	return fmt.Sprintf(`UPDATE table_ SET descr='%s',tags='%s',ncols=%d,nrows=%d,status=%d WHERE owner='%s' AND name='%s';`,
 		o.Descr,
 		o.Tags,
 		o.NCols,
 		o.NRows,
+		o.Status,
 		o.Owner,
 		o.Name), nil
 }
@@ -82,18 +83,20 @@ func GetSelectSearchTable(tin *models.Table) (string, error) {
 		tin.Descr = strings.ReplaceAll(tin.Descr, " ", "_") // replace spaces with wildcard _
 		where = append(where, fmt.Sprintf("descr like '%s'", tin.Descr))
 	}
+	where = append(where, fmt.Sprintf("status>=%d", tin.Status))
 
 	return fmt.Sprintf(`SELECT Id, Owner, Name, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE %s;`,
 		strings.Join(where, " AND ")), nil
 }
 
-func GetSelectTable(name string, owner string) (string, error) {
-	if name == "" || owner == "" {
-		return "", fmt.Errorf("table_ select makes no sense because name %s and/or owner %s were empty", name, owner)
+func GetSelectTable(name string, owner string, status int) (string, error) {
+	if name == "" || owner == "" || !models.IsValidStatus(status) {
+		return "", fmt.Errorf("cannot select with wrong parameters: %s %s %d", name, owner, status)
 	}
-	return fmt.Sprintf(`SELECT Id, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE Name='%s' and Owner='%s';`,
+	return fmt.Sprintf(`SELECT Id, Descr, Tags, DefLang, NCols, NRows, Status FROM table_ WHERE Name='%s' and Owner='%s' and status>=%d;`,
 		name,
-		owner), nil
+		owner,
+		status), nil
 }
 
 // GetUpdateNCols returns:
@@ -119,7 +122,8 @@ func GetTableColnamesName(o *models.Table) string {
 		// TODO: exception propagation ?
 		return "" //, fmt.Errorf("table name not defined, pls set table_: %s", o.Parent())
 	}
-	return fmt.Sprintf("%s_%s_%ss", o.Owner, o.Name, COLNAME_SUFFIX)
+	// status makes the table name
+	return fmt.Sprintf("%s_%s_%ss_%d", o.Owner, o.Name, COLNAME_SUFFIX, o.Status)
 }
 
 // returns SQL instruction: CREATE TABLE <owner>_<name>_colnames ...
@@ -216,7 +220,7 @@ func GetTableValuesName(o *models.Table) string {
 		// TODO: exception propagation ?
 		return "" //, fmt.Errorf("table name not defined, pls set table_: %s", o.Parent())
 	}
-	return fmt.Sprintf("%s_%s_%ss", o.Owner, o.Name, VALUE_SUFFIX)
+	return fmt.Sprintf("%s_%s_%ss_%d", o.Owner, o.Name, VALUE_SUFFIX, o.Status)
 }
 
 // returns SQL instruction: CREATE TABLE <owner>_<name>_values ...
@@ -350,4 +354,16 @@ func GetDeleteTableValues(o *models.Table, count int64) (string, error) {
 	return fmt.Sprintf("DELETE FROM %s %s;",
 		GetTableValuesName(o),
 		buffer.String()), nil
+}
+
+// GetRenameTables returns RENAME TABLE %s TO %s, %s TO %s;
+func GetRenameTables(o *models.Table, newStatus int) (string, error) {
+	oldTableCN := GetTableColnamesName(o)
+	oldTableV := GetTableValuesName(o)
+	o.Status = newStatus
+	return fmt.Sprintf("RENAME TABLE %s TO %s, %s TO %s;",
+		oldTableCN,
+		GetTableColnamesName(o),
+		oldTableV,
+		GetTableValuesName(o)), nil
 }
