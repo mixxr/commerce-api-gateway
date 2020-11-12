@@ -41,3 +41,9 @@ curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/1/10
 curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/1
 curl -ik -X GET https://localhost:8443/services/v1/samurl/bicycleurl/values/0/0
 ```
+## Service Status
+A service can have 3 status:
+- Deleted: 0
+- Draft: 1, it is available to its owner only 
+- Enabled: 2, it is available to shoppers 
+

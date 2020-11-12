@@ -138,19 +138,27 @@ func getStatus(c *gin.Context, owner string) int {
 	return models.StatusEnabled
 }
 
+func isOwner(c *gin.Context, owner string) bool {
+	username := c.GetString("username")
+	log.Println("isOwner:", username)
+
+	return username == owner
+}
+
+var file *os.File
+
 func main() {
 
 	// log
-	file, err := os.OpenFile("main.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	var err error
+	file, err = os.OpenFile("main.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.SetOutput(file)
 
-	log.Println("Hello world!")
-
-	log.Println("Starting Main===>\n.")
+	log.Println("Starting Main ===>")
 	mydir, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
@@ -166,9 +174,10 @@ func main() {
 	var errSQL error
 	dal, errSQL = dataaccess.NewDatastore()
 	if errSQL != nil {
-		log.Println("Starting Main===>FATAL ERROR:", errSQL)
+		log.Println("Starting Main ===> FATAL ERROR:", errSQL)
 		os.Exit(1)
 	}
+	log.Println("Data access layer: OK")
 
 	// utils
 	sanitizer := utils.NewSanitizer()
@@ -187,16 +196,15 @@ func main() {
 	v1.Use(AuthRequired)
 	{
 		// eg. /abc/123/search/an_interesting_service/tag1/tag2/tag3
-		// eg. /abc*/123*/search/an_interesting_service/tag1/tag2/tag3
+		// eg. /abc-/123-/search/an_interesting_service/tag1/tag2/tag3
 		v1.GET("/:owner/:service/search/:descr/*tags", func(c *gin.Context) {
 			owner := sanitizer.GetSearchToken(c.Param("owner"))     // can ends with -
 			service := sanitizer.GetSearchToken(c.Param("service")) // can ends with -
 			descr := sanitizer.GetDescr(c.Param("descr"))
 			tags, ext := getExt(c, "tags", "csv")
 			tags = sanitizer.GetTags(tags)
-			status := getStatus(c, owner)
 			//if owner != "" || service != "" || owner != "" || service != "" {
-			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags, Status: status}
+			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags, Status: getStatus(c, owner)}
 			log.Println("Search:", tin)
 			tables, errRead := dal.ReadTables(&tin)
 			log.Println("Result n.tables=", len(tables))
@@ -205,9 +213,8 @@ func main() {
 		v1.GET("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
-			status := getStatus(c, owner)
 			if owner, service = sanitizer.CheckTokens(owner, service); owner != "" && service != "" {
-				tin := models.Table{Name: service, Owner: owner, Status: status}
+				tin := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
 				table, errRead := dal.ReadTable(&tin)
 				formatAndReturn([]models.ITable{table}, errRead, c, ext)
 			} else {
@@ -219,8 +226,7 @@ func main() {
 			owner := c.Param("owner")
 			service := c.Param("service")
 			lang, ext := getExt(c, "lang", "csv")
-			status := getStatus(c, owner)
-			t := models.Table{Name: service, Owner: owner, DefLang: lang, Status: status}
+			t := models.Table{Name: service, Owner: owner, DefLang: lang, Status: getStatus(c, owner)}
 			log.Println("Table to search:", t)
 			table, errRead := dal.ReadTableColnames(&t, lang)
 			log.Println("Result:", table)
@@ -234,7 +240,7 @@ func main() {
 			startNum = getInt(c, "start", 0)
 			count, ext := getExt(c, "count", "csv")
 			countNum = toInt64(count, int64(VALUES_MAX_COUNT))
-			t := models.Table{Name: service, Owner: owner, Status: models.StatusEnabled}
+			t := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
 			log.Println("Table to search:", t, startNum, countNum)
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
 			log.Println("Result:", table)
@@ -244,6 +250,10 @@ func main() {
 		v1.POST("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
 			var tableJson models.Table
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -259,6 +269,10 @@ func main() {
 		v1.PUT("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
 			var tableJson models.Table
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -275,13 +289,17 @@ func main() {
 			owner := c.Param("owner")
 			service := c.Param("service")
 			lang, ext := getExt(c, "lang", "csv")
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
 			var tableJson models.TableColnames
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 			tableJson.Lang = lang
-			tableJson.SetParent(&models.Table{Name: service, Owner: owner})
+			tableJson.SetParent(&models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)})
 
 			err = dal.StoreTableColnames(&tableJson)
 			formatAndReturn([]models.ITable{&tableJson}, err, c, ext)
@@ -290,12 +308,16 @@ func main() {
 		v1.POST("/:owner/:service/values", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
 			var tableJson models.TableValues
 			if err := c.ShouldBindJSON(&tableJson); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
-			tableJson.SetParent(&models.Table{Name: service, Owner: owner})
+			tableJson.SetParent(&models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)})
 
 			err = dal.StoreTableValues(&tableJson)
 			if err != nil {
@@ -309,7 +331,11 @@ func main() {
 		v1.DELETE("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
-			t := models.Table{Name: service, Owner: owner}
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
+			t := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
 			err = dal.DeleteTable(&t)
 			formatAndReturn([]models.ITable{&t}, err, c, ext) // TODO: StatusAccepted 202
 		})
@@ -319,9 +345,13 @@ func main() {
 		v1.DELETE("/:owner/:service/colnames/*langs", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
 			langs, ext := getExt(c, "langs", "csv")
 			langs = strings.Trim(langs, "/")
-			t := models.Table{Name: service, Owner: owner}
+			t := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
 			err = dal.DeleteTableColnames(&t, strings.Split(langs, "/"))
 			formatAndReturn([]models.ITable{&t}, err, c, ext) // TODO: StatusAccepted 202
 			return
@@ -332,10 +362,14 @@ func main() {
 		v1.DELETE("/:owner/:service/values/*count", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
+			if !isOwner(c, owner) {
+				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+				return
+			}
 			//startNum := getInt(c, "start", 0)
 			count, _ := getExt(c, "count", "csv")
 			countNum := toInt64(count, 0)
-			t := models.Table{Name: service, Owner: owner}
+			t := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
 			err = dal.DeleteTableValues(&t, countNum)
 			c.JSON(http.StatusAccepted, gin.H{"count": t.NRows})
 			return

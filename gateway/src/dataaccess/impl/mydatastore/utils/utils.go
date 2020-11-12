@@ -102,8 +102,7 @@ func GetSelectTable(name string, owner string, status int) (string, error) {
 // GetUpdateNCols returns:
 // UPDATE table_ SET ncols=Table.NCols
 // WHERE owner='ooooo' AND name='nnnn'
-func GetUpdateNCols(o *models.Table) (string, error) {
-	ncols := o.NCols
+func GetUpdateNCols(o *models.Table, ncols int) (string, error) {
 	if ncols <= 0 {
 		return "", fmt.Errorf("table_.ncols update makes no sense because ncols is %d", ncols)
 	}

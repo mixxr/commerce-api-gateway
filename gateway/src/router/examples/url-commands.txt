@@ -14,3 +14,4 @@ curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/values/2
 curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/values/-2
 curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl/values/
 curl -ik -X DELETE https://localhost:8443/services/v1/samurl/bicycleurl
+curl -d "@table.enabled.json" -X PUT https://localhost:8443/services/v1/samurl/bicycleurl -ik

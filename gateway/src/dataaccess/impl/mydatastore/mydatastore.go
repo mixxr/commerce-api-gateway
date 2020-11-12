@@ -141,7 +141,7 @@ func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 	if err != nil {
 		return err
 	}
-	sqlstr[2], err = utils.GetUpdateNCols(t.Parent())
+	sqlstr[2], err = utils.GetUpdateNCols(t.Parent(), len(t.Header))
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,8 @@ func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 // UpdateTable table_
 // checks if exists and if status changes
 func (o *MyDatastore) UpdateTable(t *models.Table) error {
-	tOld, errREAD := o.ReadTable(t)
+	tin := models.Table{Name: t.Name, Owner: t.Owner, Status: models.StatusDeleted}
+	tOld, errREAD := o.ReadTable(&tin)
 	if errREAD != nil {
 		return errREAD
 	}
@@ -380,11 +381,10 @@ func (o *MyDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
 func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 	name := tin.Name
 	owner := tin.Owner
-	// status := models.StatusEnabled
-	// if tin.IsOwner() {
-	// 	status = models.StatusDraft
-	// }
+
 	sqlstr, errParam := utils.GetSelectTable(name, owner, tin.Status)
+
+	log.Println("ReadTable, SQL, error: ", sqlstr, errParam)
 
 	if errParam != nil {
 		return nil, errParam
@@ -395,22 +395,17 @@ func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 	}
 	defer rows.Close()
 
-	table := models.Table{}
 	for rows.Next() {
+		table := models.Table{}
 		if err = rows.Scan(&table.Id, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows, &table.Status); err != nil {
 			return nil, err
 		}
+		table.Name = name
+		table.Owner = owner
+		return &table, nil
 	}
-	table.Name = name
-	table.Owner = owner
 
-	// tableColnames, errColnames := o.ReadTableColnames(table.DefLang)
-	// if errColnames != nil {
-	// 	return nil, errColnames
-	// }
-	// table.Colnames = &tableColnames
-
-	return &table, nil
+	return nil, fmt.Errorf("service do not exist for params: %s", tin.String())
 }
 
 // ReadTableColnames returns the models.TableColnames
@@ -418,10 +413,9 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 
 	log.Println("ReadTableColnames, input: ", tin, lang)
 
-	// TODO: it is needed for NCols that is not part of the input. A different SELECT can be done without using fixed fields
 	t, errMain := o.ReadTable(tin)
 	if errMain != nil {
-		return nil, fmt.Errorf("colnames do not exist for input param: %s", tin.String())
+		return nil, errMain
 	}
 
 	tableColnames := models.NewColnames(t, lang, nil) // lang=default if empty
@@ -491,9 +485,11 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 	sqlCount, _ := utils.GetSelectNRows(tin)
 	o.db.QueryRow(sqlCount).Scan(&totRows)
 	fmt.Println("ReadTableValues, SQL, result, count: ", sqlCount, totRows, count)
+	totRows -= int64(start)
 	if totRows > 0 {
+		// this allocates always array len = min(available #rows - start, requested #rows)
 		if totRows > count {
-			totRows = count // this allocates always the min(available #rows, requested #rows)
+			totRows = count
 		}
 		// values
 		rows, err := o.db.Query(sqlstr)
