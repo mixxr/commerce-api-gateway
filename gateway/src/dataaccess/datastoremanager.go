@@ -14,7 +14,7 @@ func NewDatastore() (IDatastore, error) {
 		Dbname: "dcgw",
 	}
 
-	fmt.Println("Connecting to..." + dbcfg.String())
+	fmt.Println("Connecting to...", dbcfg.String())
 
 	myDatastore, err := mydatastore.NewDatastore(dbcfg)
 	if err != nil {

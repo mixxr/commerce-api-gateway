@@ -15,28 +15,35 @@ import (
 	"dataaccess/models"
 	"router/utils"
 
+	Logger "logger"
+
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 const (
-	VALUES_MAX_COUNT int = 1000
+	dataAccessValueMaxCount int    = 1000
+	contextXRequestId       string = "X-Request-Id"
+	contextUsername         string = "username"
+	contextLogEntry         string = "logEntry"
 )
 
 func createRouter() *gin.Engine {
 	gin.DisableConsoleColor()
 
 	// Logging to a file.
-	f, _ := os.Create("gin.log")
+	f, _ := os.Create("requests.log")
 	gin.DefaultWriter = io.MultiWriter(f)
 
 	router := gin.New()
 
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 
-		// your custom format
-		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+		return fmt.Sprintf("%s - [%s] [%s] [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
 			param.ClientIP,
 			param.TimeStamp.Format(time.RFC1123),
+			param.Keys[contextUsername],
+			param.Keys[contextXRequestId],
 			param.Method,
 			param.Path,
 			param.Request.Proto,
@@ -106,31 +113,44 @@ func getInt(c *gin.Context, paramname string, defval int) int {
 	return toInt(value, defval)
 }
 
+func RequestIdMiddleware(c *gin.Context) {
+	reqID := uuid.New().String()
+	c.Writer.Header().Set(contextXRequestId, reqID)
+	c.Set(contextXRequestId, reqID)
+	c.Next()
+}
+
+// type LogRequest struct {
+// 	UUID     string
+// 	Username string
+// 	Level    int
+// 	Message  string
+// 	ExitCode int
+// }
+func CreateLogEntry(c *gin.Context) {
+	reqLog := Logger.LogRequest{
+		UUID:     c.GetString(contextXRequestId),
+		Username: c.GetString(contextUsername),
+	}
+	c.Set(contextLogEntry, &reqLog)
+	c.Next()
+}
+
 // AuthRequired is a simple middleware to check the session
 func AuthRequired(c *gin.Context) {
 
 	username, password, hasAuth := c.Request.BasicAuth()
 
-	// TODO: check username/password
-	// if hasAuth && username == "testuser" && password == "testpass" {
-	// 	log.WithFields(log.Fields{
-	// 		"user": username,
-	// 	}).Info("User authenticated")
-	// } else {
-	// 	c.Abort()
-	// 	c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
-	// 	return
-	// }
 	log.Println("Authentication:", username, password, hasAuth)
 
-	c.Set("username", username)
+	c.Set(contextUsername, username)
 
 	// Continue down the chain to handler etc
 	c.Next()
 }
 
 func getStatus(c *gin.Context, owner string) int {
-	username := c.GetString("username")
+	username := c.GetString(contextUsername)
 	log.Println("getStatus:", username)
 	if username == owner {
 		return models.StatusDraft
@@ -139,31 +159,29 @@ func getStatus(c *gin.Context, owner string) int {
 }
 
 func isOwner(c *gin.Context, owner string) bool {
-	username := c.GetString("username")
+	username := c.GetString(contextUsername)
 	log.Println("isOwner:", username)
 
 	return username == owner
+}
+
+func GetLogRequest(c *gin.Context, level int, logmsgs ...interface{}) (lr *Logger.LogRequest) {
+	lr = c.MustGet(contextLogEntry).(*Logger.LogRequest)
+	lr.Message = fmt.Sprint(logmsgs, " ")
+	lr.Level = level
+	return
 }
 
 var file *os.File
 
 func main() {
 
-	// log
-	var err error
-	file, err = os.OpenFile("main.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.SetOutput(file)
-
-	log.Println("Starting Main ===>")
+	Logger.AppLogger.Info("", "", "Starting Main ===>", Logger.AppLogger)
 	mydir, err := os.Getwd()
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 	}
-	log.Println(mydir)
+	Logger.AppLogger.Info("", "", mydir)
 
 	// router.Static("/assets", "./assets")
 	// router.StaticFS("/more_static", http.Dir("my_file_system"))
@@ -177,7 +195,7 @@ func main() {
 		log.Println("Starting Main ===> FATAL ERROR:", errSQL)
 		os.Exit(1)
 	}
-	log.Println("Data access layer: OK")
+	Logger.AppLogger.Info("main", "main", "Data access layer: OK")
 
 	// utils
 	sanitizer := utils.NewSanitizer()
@@ -190,10 +208,12 @@ func main() {
 			"message": "pong",
 		})
 	})
+	router.Use(RequestIdMiddleware)
 
 	v1 := router.Group("/services/v1")
 	//tables := v1.Group("/:owner/:service")
 	v1.Use(AuthRequired)
+	v1.Use(CreateLogEntry)
 	{
 		// eg. /abc/123/search/an_interesting_service/tag1/tag2/tag3
 		// eg. /abc-/123-/search/an_interesting_service/tag1/tag2/tag3
@@ -205,9 +225,9 @@ func main() {
 			tags = sanitizer.GetTags(tags)
 			//if owner != "" || service != "" || owner != "" || service != "" {
 			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags, Status: getStatus(c, owner)}
-			log.Println("Search:", tin)
+			Logger.AppLogger.Write(GetLogRequest(c, Logger.LogInfo, "GET search", owner, service))
 			tables, errRead := dal.ReadTables(&tin)
-			log.Println("Result n.tables=", len(tables))
+			//Logger.CommonLog.Println("Result n.tables=", len(tables))
 			formatAndReturn(models.ConvertToITables(tables), errRead, c, ext)
 		})
 		v1.GET("/:owner/:service", func(c *gin.Context) {
@@ -215,6 +235,7 @@ func main() {
 			service, ext := getExt(c, "service", "csv")
 			if owner, service = sanitizer.CheckTokens(owner, service); owner != "" && service != "" {
 				tin := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
+				//Logger.CommonLog.Println("Read:", tin)
 				table, errRead := dal.ReadTable(&tin)
 				formatAndReturn([]models.ITable{table}, errRead, c, ext)
 			} else {
@@ -239,7 +260,7 @@ func main() {
 			service := c.Param("service")
 			startNum = getInt(c, "start", 0)
 			count, ext := getExt(c, "count", "csv")
-			countNum = toInt64(count, int64(VALUES_MAX_COUNT))
+			countNum = toInt64(count, int64(dataAccessValueMaxCount))
 			t := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
 			log.Println("Table to search:", t, startNum, countNum)
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
