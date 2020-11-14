@@ -1,7 +1,9 @@
-// this fle can contain dependencies in format
+// used by MAVEN only
+// this file can contain dependencies in format
 // package: <NAME> [,branch: <BRANCH>][, tag: <TAG>][, revision: <REVISION>]
 // example:
 //   package:github.com/gizak/termui, branch:v2
 package:github.com/go-sql-driver/mysql
 package:github.com/gin-gonic/gin
 package:github.com/google/uuid
+package:github.com/spf13/viper

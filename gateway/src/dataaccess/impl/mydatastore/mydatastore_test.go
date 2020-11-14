@@ -52,7 +52,7 @@ func prepareMySQL() *mydatastore.MyDatastore {
 
 	log.Println("Connecting to..." + dbcfg.String())
 	var err error
-	myDatastore, err = mydatastore.NewDatastore(dbcfg)
+	myDatastore, err = mydatastore.NewDatastore(&dbcfg)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)

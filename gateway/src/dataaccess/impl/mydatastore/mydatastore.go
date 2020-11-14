@@ -47,7 +47,7 @@ func (o DBConfig) checkDefaults() {
 	}
 }
 
-func NewDatastore(o DBConfig) (*MyDatastore, error) {
+func NewDatastore(o *DBConfig) (*MyDatastore, error) {
 	if mainconn == nil {
 		// log
 		// file, err := os.OpenFile("dataaccess.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)

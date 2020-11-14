@@ -1,0 +1,15 @@
+# config.dev.yaml
+APP:
+  TITLE: "Data Commerce Gateway"
+
+DATAACCESS:
+  HOST: "localhost"
+  PORT: "3306"
+  USERNAME: "root"
+  PASWORD: "secr3tZ"
+  DBNAME: "dcgw"
+
+LOGGER:
+  LEVEL: 4
+  FILENAME: "dc-gw-app.log"
+  LOGPATH: "."

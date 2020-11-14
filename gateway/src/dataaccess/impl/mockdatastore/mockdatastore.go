@@ -18,7 +18,7 @@ func (o DBConfig) String() string {
 	return fmt.Sprintf("mockdatastore")
 }
 
-func NewDatastore(o DBConfig) (*MockDatastore, error) {
+func NewDatastore(o *DBConfig) (*MockDatastore, error) {
 	newObj := new(MockDatastore)
 	s1 := rand.NewSource(time.Now().UnixNano())
 	newObj.rndGen = rand.New(s1)

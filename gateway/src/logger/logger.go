@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -50,35 +52,66 @@ type Logger struct {
 	commonLog *log.Logger
 	level     int
 	filename  string
-	file      *os.File
+	fileid    *os.File
 }
 
 var AppLogger *Logger
 var once sync.Once
 
+func loadConfigurations() {
+	runmode, ok := os.LookupEnv("DCGW_RUNMODE")
+	if !ok {
+		runmode = "dev"
+	}
+
+	// Set the fileid name of the configurations file
+	viper.SetConfigName("config." + runmode + ".yaml")
+
+	// Set the path to look for the configurations file
+	configPath, ok := os.LookupEnv("DCGW_CONFIGPATH")
+	if !ok {
+		viper.AddConfigPath(".")
+	} else {
+		viper.AddConfigPath(configPath)
+	}
+
+	// Enable VIPER to read Environment Variables
+	viper.AutomaticEnv()
+
+	viper.SetConfigType("yml")
+
+	defFilename := "application.log"
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Printf("Using default LOGGER configurations...Error reading config file, %s\n", err)
+		AppLogger = &Logger{
+			level:    LogInfo,
+			filename: defFilename}
+	} else {
+		fmt.Printf("Using env LOGGER configurations...%d\n", viper.Get("LOGGER.LEVEL").(int))
+		viper.SetDefault("LOGGER.LEVEL", LogInfo)
+		viper.SetDefault("LOGGER.FILENAME", defFilename)
+		viper.SetDefault("LOGGER.LOGPATH", ".")
+		AppLogger = &Logger{
+			level:    viper.Get("LOGGER.LEVEL").(int),
+			filename: fmt.Sprintf("%s/%s", viper.Get("LOGGER.LOGPATH").(string), viper.Get("LOGGER.FILENAME").(string))}
+	}
+}
+
 func init() {
 	once.Do(func() {
-		// TODO: filename from env var
-		filename := "application.log"
-		openLogfile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		loadConfigurations()
+
+		openLogfile, err := os.OpenFile(AppLogger.filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
-			fmt.Println("Error opening main log file:", err)
+			fmt.Println("Error opening main log fileid:", err)
 			os.Exit(1)
 		}
 
-		// TODO: level from env var
-		AppLogger = &Logger{
-			commonLog: log.New(openLogfile, "", log.Ldate|log.Ltime|log.Lmicroseconds),
-			level:     LogInfo,
-			file:      openLogfile,
-			filename:  filename}
+		AppLogger.commonLog = log.New(openLogfile, "", log.Ldate|log.Ltime|log.Lmicroseconds)
+		AppLogger.fileid = openLogfile
+		// TODO: defer AppLogger.fileid
 
-		mydir, err := os.Getwd()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
-		AppLogger.commonLog.Println("Logger Init:", mydir, filename)
+		AppLogger.commonLog.Println("Logger Init:", AppLogger.filename, AppLogger.commonLog)
 	})
 }
 

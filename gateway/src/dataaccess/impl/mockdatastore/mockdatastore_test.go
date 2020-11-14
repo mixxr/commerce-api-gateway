@@ -11,7 +11,7 @@ import (
 
 func prepareMock() *mockdatastore.MockDatastore {
 
-	dbcfg := mockdatastore.DBConfig{}
+	dbcfg := &mockdatastore.DBConfig{}
 
 	fmt.Println("Connecting to..." + dbcfg.String())
 
