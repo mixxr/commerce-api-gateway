@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"dataaccess"
-	"dataaccess/models"
-	sanitizer "router/utils/sanitizer"
+	"main/dataaccess"
+	"main/dataaccess/models"
+	sanitizer "main/router/utils/sanitizer"
 
-	"logger"
+	"main/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -116,9 +116,13 @@ func getInt(c *gin.Context, paramname string, defval int) int {
 
 func loadConfigurations() {
 	runmode, ok := os.LookupEnv("DCGW_RUNMODE")
+	runmodeWasProvided := false
 	if !ok {
 		runmode = "dev"
+	} else {
+		runmodeWasProvided = true
 	}
+	logger.AppLogger.Info("main", "main", "runmode:", runmode)
 
 	// Set the file name of the configurations file
 	viper.SetConfigName("config." + runmode + ".yaml")
@@ -133,6 +137,9 @@ func loadConfigurations() {
 
 	if err := viper.ReadInConfig(); err != nil {
 		logger.AppLogger.Info("main", "main", "Using default DB configurations...Error reading config file ", err)
+		if runmodeWasProvided {
+			logger.AppLogger.Fatal("main", "main", "DCGW_RUNMODE was provided but not found as configuration file, provided runmode:", runmode)
+		}
 		// TODO: DB
 	} else {
 		logger.AppLogger.Info("main", "main", "Using dev DB configurations...Log Level:", viper.Get("LOGGER.LEVEL").(int))

@@ -18,14 +18,42 @@ The project is composed by several modules in order to make it scalable, elastic
 - **Storefront** module: it is used by the shoppers, they can search, retrieve data. The data is formatted for humans (eg. html5, csv) or for applications (eg. json, xml)
 - **Identity Manager** module: it is responsible for accounts, plans and subscriptions.
 
+
+## to Configure
+The application uses viper with YAML configuration file. The environemnt variables DCGW_RUNMODE and DCGW_CONFIGPATH are used for:
+- DCGW_RUNMODE: it is the runmode for the application. Eg. dev, prod. The runmode is used to build the config filename to search:
+  - For example, DCGW_RUNMODE=dev means a file named config.dev.yaml is needed to load the configurations
+  - Default is 'dev'
+- DCGW_CONFIGPATH: it is used to search the YAML config file. 
+  - Default is the current directory.
+
 ## to RUN
+### Pre-conditions
 - MariaDB docker is needed (or a local installation). The project provides a Dockerfile at location: scripts/mariadb/Dockerfile
 - when the docker is up then execute the gateway:
+### Run via maven
 `cd gateway`
 
 `mvn clean install`
+or
+`DCGW_RUNMODE=prod mvn clean install`
+to configure the runmode for the specific command
 
-- it runs test -v also
+mvn runs tests verbose also
+
+### Runs with go cli
+`cd gateway/src`
+
+`go build`
+`go run main`
+
+or
+`DCGW_RUNMODE=prod go run main`
+
+to run all tests:
+`go test ./... -cover -count=1`
+
+
 
 ## URL examples
 

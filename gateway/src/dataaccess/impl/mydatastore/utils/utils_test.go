@@ -1,9 +1,9 @@
 package utils_test
 
 import (
-	"dataaccess/impl/mydatastore/utils"
-	"dataaccess/models"
 	"fmt"
+	"main/dataaccess/impl/mydatastore/utils"
+	"main/dataaccess/models"
 	"testing"
 )
 

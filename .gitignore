@@ -2,3 +2,5 @@
 */res
 */personal.notes
 *.log
+*/logs
+*/pkg

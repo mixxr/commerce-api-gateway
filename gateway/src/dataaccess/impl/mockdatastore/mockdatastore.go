@@ -1,8 +1,8 @@
 package mockdatastore
 
 import (
-	"dataaccess/models"
 	"fmt"
+	"main/dataaccess/models"
 	"math/rand"
 	"time"
 )

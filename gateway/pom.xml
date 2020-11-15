@@ -69,6 +69,7 @@
           <!--goRoot>/usr/local/Cellar/go/1.15.2/libexec</goRoot-->
           <!--<enforceGoPathToEnd>true</enforceGoPathToEnd>-->
           <!--<verbose>true</verbose>-->
+
         </configuration>
         <executions>
           <!-- <execution>
@@ -86,6 +87,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
+
               <packages>
                 <app>main.go</app>
               </packages>

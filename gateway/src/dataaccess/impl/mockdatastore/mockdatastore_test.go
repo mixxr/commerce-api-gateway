@@ -1,10 +1,10 @@
 package mockdatastore_test
 
 import (
-	"dataaccess"
-	"dataaccess/impl/mockdatastore"
-	"dataaccess/models"
 	"fmt"
+	"main/dataaccess"
+	"main/dataaccess/impl/mockdatastore"
+	"main/dataaccess/models"
 	"os"
 	"testing"
 )

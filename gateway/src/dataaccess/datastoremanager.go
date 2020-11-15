@@ -1,8 +1,8 @@
 package dataaccess
 
 import (
-	"dataaccess/impl/mydatastore"
 	"fmt"
+	"main/dataaccess/impl/mydatastore"
 	"os"
 
 	"github.com/spf13/viper"

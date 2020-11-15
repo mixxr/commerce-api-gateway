@@ -1,10 +1,10 @@
 package models_test
 
 import (
-	"dataaccess/models"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"main/dataaccess/models"
 	"os"
 	"testing"
 )

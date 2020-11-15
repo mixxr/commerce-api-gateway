@@ -1,11 +1,11 @@
 package mydatastore
 
 import (
-	"dataaccess/impl/mydatastore/utils"
-	"dataaccess/models"
 	"database/sql"
 	"fmt"
-	"logger"
+	"main/dataaccess/impl/mydatastore/utils"
+	"main/dataaccess/models"
+	"main/logger"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"

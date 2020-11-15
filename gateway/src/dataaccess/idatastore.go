@@ -1,6 +1,6 @@
 package dataaccess
 
-import "dataaccess/models"
+import "main/dataaccess/models"
 
 type IDatastore interface {
 	// create

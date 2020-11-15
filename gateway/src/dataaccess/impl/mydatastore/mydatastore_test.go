@@ -1,11 +1,11 @@
 package mydatastore_test
 
 import (
-	"dataaccess"
-	"dataaccess/impl/mydatastore"
-	"dataaccess/models"
 	"fmt"
-	"logger"
+	"main/dataaccess"
+	"main/dataaccess/impl/mydatastore"
+	"main/dataaccess/models"
+	"main/logger"
 	"math/rand"
 	"os"
 	"testing"
