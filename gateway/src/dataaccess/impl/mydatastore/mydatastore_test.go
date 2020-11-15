@@ -5,7 +5,7 @@ import (
 	"dataaccess/impl/mydatastore"
 	"dataaccess/models"
 	"fmt"
-	"log"
+	"logger"
 	"math/rand"
 	"os"
 	"testing"
@@ -19,28 +19,17 @@ var ncols int
 
 func prepareMySQL() *mydatastore.MyDatastore {
 
-	// log
-	if file == nil {
-		var errLog error
-		file, errLog = os.OpenFile("mydatastore_test.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-		if errLog != nil {
-			log.Fatal(errLog)
-		}
-	}
-
-	log.SetOutput(file)
-
 	if myDatastore != nil {
 		return myDatastore
 	}
 
-	log.Println("MyDataStoreTest - initalizing...")
+	logger.AppLogger.Info("test", "test", "MyDataStoreTest - initalizing...")
 
 	rand.Seed(time.Now().UnixNano())
 	name = fmt.Sprintf("service_%d", rand.Intn(1000))
 	owner = fmt.Sprintf("owner_%d", rand.Intn(1000))
 	ncols = 4
-	log.Println("Test Parameters...", name, owner, ncols)
+	logger.AppLogger.Info("test", "test", "Test Parameters...", name, owner, ncols)
 
 	dbcfg := mydatastore.DBConfig{
 		Uid:    "root",
@@ -50,12 +39,11 @@ func prepareMySQL() *mydatastore.MyDatastore {
 		Dbname: "dcgw",
 	}
 
-	log.Println("Connecting to..." + dbcfg.String())
+	logger.AppLogger.Info("test", "test", "Connecting to...", dbcfg.String())
 	var err error
 	myDatastore, err = mydatastore.NewDatastore(&dbcfg)
 	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+		logger.AppLogger.Fatal("test", "test", err)
 	}
 
 	return myDatastore
@@ -74,7 +62,7 @@ func TestMyDatastoreCreate(t *testing.T) {
 	if err != nil {
 		t.Errorf("StoreTable ERROR: %s", err)
 	}
-	log.Println("StoreTable SQL:", table1)
+	logger.AppLogger.Info("test", "test", "StoreTable SQL:", table1)
 
 	// tablecolnames
 	header := []string{"test_colname1", "test_colname2", "test_colname3", "test_colname4"}
@@ -84,7 +72,7 @@ func TestMyDatastoreCreate(t *testing.T) {
 	if err != nil {
 		t.Errorf("StoreTableColnames ERROR: %s", err)
 	}
-	log.Println("StoreTableColnames SQL:", tableCNs)
+	logger.AppLogger.Info("test", "test", "StoreTableColnames SQL:", tableCNs)
 
 	// tablevalues
 	rows := [][]string{
@@ -101,7 +89,7 @@ func TestMyDatastoreCreate(t *testing.T) {
 	if err != nil {
 		t.Errorf("StoreTableValues ERROR: %s", err)
 	}
-	log.Println("StoreTableValues SQL:", tableVs)
+	logger.AppLogger.Info("test", "test", "StoreTableValues SQL:", tableVs)
 }
 
 func TestMyDatastoreRead(t *testing.T) {
@@ -128,7 +116,7 @@ func TestMyDatastoreRead(t *testing.T) {
 	if table1.NCols != ncols {
 		t.Errorf("table.NCols is not correct, got %d, want %d", table1.NCols, ncols)
 	}
-	log.Println("table_ READ:", table1)
+	logger.AppLogger.Info("test", "test", "table_ READ:", table1)
 
 	// colnames
 	var tableColnames *models.TableColnames
@@ -136,7 +124,7 @@ func TestMyDatastoreRead(t *testing.T) {
 	if err != nil {
 		t.Errorf("ReadTableColnames Error: %s", err)
 	}
-	log.Println("ReadTableColnames SQL:", tableColnames)
+	logger.AppLogger.Info("test", "test", "ReadTableColnames SQL:", tableColnames)
 	testColname := fmt.Sprintf("test_colname%d", table1.NCols)
 	if tableColnames.Lang != table1.DefLang {
 		t.Errorf("ReadTableColnames deflang is not correct, got %s, want %s", tableColnames.Lang, table1.DefLang)
@@ -155,7 +143,7 @@ func TestMyDatastoreRead(t *testing.T) {
 	if err != nil {
 		t.Errorf("ReadTableValues Error: %s", err)
 	} else {
-		log.Println("ReadTableValues SQL:", tableValues)
+		logger.AppLogger.Info("test", "test", "ReadTableValues SQL:", tableValues)
 
 		if tableValues.Start != start {
 			t.Errorf("ReadTableValues Start is not correct, got %d, want %d", tableValues.Start, start)
@@ -185,6 +173,6 @@ func TestMyDatastoreRemove(t *testing.T) {
 	if err != nil {
 		t.Errorf("DeleteTable Error: %s", err)
 	} else {
-		log.Println("DeleteTable OK:", table1)
+		logger.AppLogger.Info("test", "test", "DeleteTable OK:", table1)
 	}
 }

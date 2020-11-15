@@ -5,7 +5,7 @@ import (
 	"dataaccess/models"
 	"database/sql"
 	"fmt"
-	Logger "logger"
+	"logger"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -57,7 +57,7 @@ func NewDatastore(o *DBConfig) (*MyDatastore, error) {
 
 		// log.SetOutput(file)
 
-		Logger.AppLogger.Info("", "", "MyDataStore - SQL DB!")
+		logger.AppLogger.Info("", "", "MyDataStore - SQL DB!")
 	}
 	newObj := new(MyDatastore)
 	var err error
@@ -88,10 +88,10 @@ func (o DBConfig) connect() (*sql.DB, error) {
 	var version string
 	var tot int64
 	db.QueryRow("SELECT VERSION()").Scan(&version)
-	Logger.AppLogger.Info("", "", "Connected to:", version)
+	logger.AppLogger.Info("", "", "Connected to:", version)
 
 	db.QueryRow("SELECT count(*) as tot from table_").Scan(&tot)
-	Logger.AppLogger.Info("", "", "DB contains tables:", tot)
+	logger.AppLogger.Info("", "", "DB contains tables:", tot)
 
 	mainconn = db
 
@@ -351,7 +351,7 @@ func (o *MyDatastore) AddValues(t *models.TableValues) error {
 // ReadTables returns  []models.Table without colnames neither values
 func (o *MyDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
 	sqlstr, errParam := utils.GetSelectSearchTable(tin)
-	Logger.AppLogger.Info("", "", "ReadTables, input: ", tin.String(), sqlstr)
+	logger.AppLogger.Info("", "", "ReadTables, input: ", tin.String(), sqlstr)
 
 	if errParam != nil {
 		return nil, errParam
@@ -369,7 +369,7 @@ func (o *MyDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
 		if err = rows.Scan(&table.Id, &table.Owner, &table.Name, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows); err != nil {
 			return nil, err
 		}
-		Logger.AppLogger.Info("", "", "ReadTables, table: ", table.String())
+		logger.AppLogger.Info("", "", "ReadTables, table: ", table.String())
 		tables = append(tables, &table)
 	}
 
@@ -383,7 +383,7 @@ func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 
 	sqlstr, errParam := utils.GetSelectTable(name, owner, tin.Status)
 
-	Logger.AppLogger.Info("", "", "ReadTable, SQL, error: ", sqlstr, errParam)
+	logger.AppLogger.Info("", "", "ReadTable, SQL, error: ", sqlstr, errParam)
 
 	if errParam != nil {
 		return nil, errParam
@@ -410,7 +410,7 @@ func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 // ReadTableColnames returns the models.TableColnames
 func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models.TableColnames, error) {
 
-	Logger.AppLogger.Info("", "", "ReadTableColnames, input: ", tin, lang)
+	logger.AppLogger.Info("", "", "ReadTableColnames, input: ", tin, lang)
 
 	t, errMain := o.ReadTable(tin)
 	if errMain != nil {
@@ -420,7 +420,7 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 	tableColnames := models.NewColnames(t, lang, nil) // lang=default if empty
 	sqlstr, errParam := utils.GetSelectTableColnames(tableColnames)
 
-	Logger.AppLogger.Info("", "", "ReadTableColnames, SQL: ", sqlstr, errParam)
+	logger.AppLogger.Info("", "", "ReadTableColnames, SQL: ", sqlstr, errParam)
 
 	if errParam != nil {
 		return nil, errParam
@@ -454,7 +454,7 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 		}
 	}
 	if i == 0 {
-		Logger.AppLogger.Info("", "", "colnames do not exist for lang param:", lang)
+		logger.AppLogger.Info("", "", "colnames do not exist for lang param:", lang)
 		return nil, fmt.Errorf("colnames do not exist for lang param: %s", lang)
 	}
 
@@ -464,7 +464,7 @@ func (o *MyDatastore) ReadTableColnames(tin *models.Table, lang string) (*models
 // ReadTableValues returns the models.TableValues
 func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64) (*models.TableValues, error) {
 
-	Logger.AppLogger.Info("", "", "ReadTableValues, input: ", tin, start, count)
+	logger.AppLogger.Info("", "", "ReadTableValues, input: ", tin, start, count)
 
 	// TODO: it is needed for NCols that is not part of the input. A different SELECT can be done without using fixed fields
 	t, errMain := o.ReadTable(tin)
@@ -474,7 +474,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 	tableValues := models.NewValues(t, start, count, nil)
 	sqlstr, errParam := utils.GetSelectTableValues(tableValues)
 
-	Logger.AppLogger.Info("", "", "ReadTableValues, SQL: ", sqlstr, errParam)
+	logger.AppLogger.Info("", "", "ReadTableValues, SQL: ", sqlstr, errParam)
 
 	if errParam != nil {
 		return nil, errParam
@@ -526,7 +526,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 		return tableValues, nil
 
 	}
-	Logger.AppLogger.Info("", "", "values do not exist for params:", tin)
+	logger.AppLogger.Info("", "", "values do not exist for params:", tin)
 	return nil, fmt.Errorf("values do not exist for params: %s", tin)
 
 }
@@ -601,27 +601,27 @@ func (o *MyDatastore) DeleteTableValues(t *models.Table, count int64) error {
 	res, errDEL := tx.Exec(sqlstr)
 	if errDEL != nil {
 		tx.Rollback()
-		Logger.AppLogger.Info("", "", "DeleteTableValues, Rows ERROR:", errDEL)
+		logger.AppLogger.Info("", "", "DeleteTableValues, Rows ERROR:", errDEL)
 		return errDEL
 	}
 	var affectedRows int64
 	affectedRows, errDEL = res.RowsAffected()
 	if errDEL != nil {
 		tx.Rollback()
-		Logger.AppLogger.Info("", "", "DeleteTableValues, RowsAffected ERROR:", errDEL)
+		logger.AppLogger.Info("", "", "DeleteTableValues, RowsAffected ERROR:", errDEL)
 		return errDEL
 	}
 	// UPDATE table_ by affectedRows
 	sqlUpdate, errUPD := utils.GetIncrementTable(t, -affectedRows)
 	if errUPD != nil {
 		tx.Rollback()
-		Logger.AppLogger.Info("", "", "DeleteTableValues, Update SQL ERROR:", errUPD)
+		logger.AppLogger.Info("", "", "DeleteTableValues, Update SQL ERROR:", errUPD)
 		return errUPD
 	}
 	_, errUPD = tx.Exec(sqlUpdate)
 	if errUPD != nil {
 		tx.Rollback()
-		Logger.AppLogger.Info("", "", "DeleteTableValues, Update ERROR:", errUPD)
+		logger.AppLogger.Info("", "", "DeleteTableValues, Update ERROR:", errUPD)
 		return errUPD
 	}
 

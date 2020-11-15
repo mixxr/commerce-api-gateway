@@ -38,4 +38,5 @@ func TestMockDatastore(t *testing.T) {
 
 	table1.Colnames, _ = mockDS.ReadTableColnames(table1, "")
 	table1.Values, _ = mockDS.ReadTableValues(table1, 0, 5)
+
 }

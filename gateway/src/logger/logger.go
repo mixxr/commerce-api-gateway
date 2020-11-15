@@ -58,6 +58,19 @@ type Logger struct {
 var AppLogger *Logger
 var once sync.Once
 
+const (
+	DefLogFileName = "application.log"
+)
+
+// func getGID() uint64 {
+// 	b := make([]byte, 64)
+// 	b = b[:runtime.Stack(b, false)]
+// 	b = bytes.TrimPrefix(b, []byte("goroutine "))
+// 	b = b[:bytes.IndexByte(b, ' ')]
+// 	n, _ := strconv.ParseUint(string(b), 10, 64)
+// 	return n
+// }
+
 func loadConfigurations() {
 	runmode, ok := os.LookupEnv("DCGW_RUNMODE")
 	if !ok {
@@ -80,16 +93,15 @@ func loadConfigurations() {
 
 	viper.SetConfigType("yml")
 
-	defFilename := "application.log"
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Using default LOGGER configurations...Error reading config file, %s\n", err)
 		AppLogger = &Logger{
 			level:    LogInfo,
-			filename: defFilename}
+			filename: DefLogFileName}
 	} else {
 		fmt.Printf("Using env LOGGER configurations...%d\n", viper.Get("LOGGER.LEVEL").(int))
 		viper.SetDefault("LOGGER.LEVEL", LogInfo)
-		viper.SetDefault("LOGGER.FILENAME", defFilename)
+		viper.SetDefault("LOGGER.FILENAME", DefLogFileName)
 		viper.SetDefault("LOGGER.LOGPATH", ".")
 		AppLogger = &Logger{
 			level:    viper.Get("LOGGER.LEVEL").(int),
@@ -142,4 +154,9 @@ func (o *Logger) WriteAndExit(logmsg *LogRequest) {
 func (o *Logger) Info(uuid string, username string, logmsgs ...interface{}) {
 	_, caller, line, _ := runtime.Caller(1)
 	o.Write(&LogRequest{caller: caller, line: line, UUID: uuid, Username: username, Level: LogInfo, Message: fmt.Sprint(logmsgs, " ")})
+}
+
+func (o *Logger) Fatal(uuid string, username string, logmsgs ...interface{}) {
+	_, caller, line, _ := runtime.Caller(1)
+	o.WriteAndExit(&LogRequest{caller: caller, line: line, UUID: uuid, Username: username, ExitCode: 2, Message: fmt.Sprint(logmsgs, " ")})
 }

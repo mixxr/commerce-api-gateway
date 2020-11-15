@@ -13,9 +13,9 @@ import (
 
 	"dataaccess"
 	"dataaccess/models"
-	"router/utils"
+	sanitizer "router/utils/sanitizer"
 
-	Logger "logger"
+	"logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -132,10 +132,10 @@ func loadConfigurations() {
 	viper.SetConfigType("yml")
 
 	if err := viper.ReadInConfig(); err != nil {
-		Logger.AppLogger.Info("main", "main", "Using default DB configurations...Error reading config file, %s\n", err)
+		logger.AppLogger.Info("main", "main", "Using default DB configurations...Error reading config file ", err)
 		// TODO: DB
 	} else {
-		Logger.AppLogger.Info("main", "main", "Using dev DB configurations...%d\n", viper.Get("LOGGER.LEVEL").(int))
+		logger.AppLogger.Info("main", "main", "Using dev DB configurations...Log Level:", viper.Get("LOGGER.LEVEL").(int))
 	}
 	// viper.SetDefault("LOGGER.LOGPATH", ".")
 	// 	AppLogger = &Logger{
@@ -157,7 +157,7 @@ func RequestIdMiddleware(c *gin.Context) {
 // 	ExitCode int
 // }
 func CreateLogEntry(c *gin.Context) {
-	reqLog := Logger.LogRequest{
+	reqLog := logger.LogRequest{
 		UUID:     c.GetString(contextXRequestID),
 		Username: c.GetString(contextUsername),
 	}
@@ -194,8 +194,8 @@ func isOwner(c *gin.Context, owner string) bool {
 	return username == owner
 }
 
-func GetLogRequest(c *gin.Context, level int, logmsgs ...interface{}) (lr *Logger.LogRequest) {
-	lr = c.MustGet(contextLogEntry).(*Logger.LogRequest)
+func GetLogRequest(c *gin.Context, level int, logmsgs ...interface{}) (lr *logger.LogRequest) {
+	lr = c.MustGet(contextLogEntry).(*logger.LogRequest)
 	lr.Message = fmt.Sprint(logmsgs, " ")
 	lr.Level = level
 	return
@@ -205,12 +205,12 @@ var file *os.File
 
 func main() {
 
-	Logger.AppLogger.Info("", "", "Starting Main ===>", Logger.AppLogger)
+	logger.AppLogger.Info("main", "", "Starting Main ===>", logger.AppLogger)
 	mydir, err := os.Getwd()
 	if err != nil {
 		fmt.Println(err)
 	}
-	Logger.AppLogger.Info("", "", mydir)
+	logger.AppLogger.Info("main", "", mydir)
 
 	loadConfigurations()
 
@@ -223,13 +223,18 @@ func main() {
 	var errSQL error
 	dal, errSQL = dataaccess.NewDatastore()
 	if errSQL != nil {
-		log.Println("Starting Main ===> FATAL ERROR:", errSQL)
-		os.Exit(1)
+		reqLog := logger.LogRequest{
+			UUID:     "main",
+			Username: "main",
+			ExitCode: 1,
+			Message:  fmt.Sprintf("Dataaccess Error: %s", errSQL),
+		}
+		logger.AppLogger.WriteAndExit(&reqLog)
 	}
-	Logger.AppLogger.Info("main", "main", "Data access layer: OK")
+	logger.AppLogger.Info("main", "main", "Data access layer: OK")
 
 	// utils
-	sanitizer := utils.NewSanitizer()
+	// sanitizer := utils.NewSanitizer()
 
 	// router
 	router := createRouter() //gin.Default()
@@ -256,32 +261,37 @@ func main() {
 			tags = sanitizer.GetTags(tags)
 			//if owner != "" || service != "" || owner != "" || service != "" {
 			tin := models.Table{Name: service, Owner: owner, Descr: descr, Tags: tags, Status: getStatus(c, owner)}
-			Logger.AppLogger.Write(GetLogRequest(c, Logger.LogInfo, "GET search", owner, service))
-			tables, errRead := dal.ReadTables(&tin)
-			//Logger.CommonLog.Println("Result n.tables=", len(tables))
-			formatAndReturn(models.ConvertToITables(tables), errRead, c, ext)
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "GET search", tin))
+			if tin.IsValid() {
+				tables, errRead := dal.ReadTables(&tin)
+				//logger.CommonLog.Println("Result n.tables=", len(tables))
+				formatAndReturn(models.ConvertToITables(tables), errRead, c, ext)
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "owner and service have to be alphanumeric, use _ in place of spaces, use - in place of * for searches"})
+				return
+			}
 		})
 		v1.GET("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
 			if owner, service = sanitizer.CheckTokens(owner, service); owner != "" && service != "" {
 				tin := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
-				//Logger.CommonLog.Println("Read:", tin)
+				logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "GET service", tin))
 				table, errRead := dal.ReadTable(&tin)
 				formatAndReturn([]models.ITable{table}, errRead, c, ext)
 			} else {
-				formatAndReturn(nil, fmt.Errorf("owner and service names have to be alphanumeric, use _ in place of spaces"), c, "json")
+				c.JSON(http.StatusBadRequest, gin.H{"error": "owner and service have to be alphanumeric, use _ in place of spaces"})
+				return
 			}
-
 		})
 		v1.GET("/:owner/:service/colnames/:lang", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
 			lang, ext := getExt(c, "lang", "csv")
 			t := models.Table{Name: service, Owner: owner, DefLang: lang, Status: getStatus(c, owner)}
-			log.Println("Table to search:", t)
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "GET servicecolnames", t))
 			table, errRead := dal.ReadTableColnames(&t, lang)
-			log.Println("Result:", table)
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "GET servicecolnames RESULT", table))
 			formatAndReturn([]models.ITable{table}, errRead, c, ext)
 		})
 		v1.GET("/:owner/:service/values/:start/:count", func(c *gin.Context) {
@@ -293,15 +303,16 @@ func main() {
 			count, ext := getExt(c, "count", "csv")
 			countNum = toInt64(count, int64(dataAccessValueMaxCount))
 			t := models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)}
-			log.Println("Table to search:", t, startNum, countNum)
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "GET servicevalues", t, startNum, countNum))
 			table, errRead := dal.ReadTableValues(&t, startNum, countNum)
-			log.Println("Result:", table)
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "GET servicevalues RESULT", table))
 			formatAndReturn([]models.ITable{table}, errRead, c, ext)
 		})
 		// CREATE
 		v1.POST("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "CREATE service", owner, service))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -321,6 +332,7 @@ func main() {
 		v1.PUT("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "UPDATE service", owner, service))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -341,6 +353,7 @@ func main() {
 			owner := c.Param("owner")
 			service := c.Param("service")
 			lang, ext := getExt(c, "lang", "csv")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "CREATE servicecolnames", owner, service, lang))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -360,6 +373,7 @@ func main() {
 		v1.POST("/:owner/:service/values", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "CREATE servicevalues", owner, service))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -383,6 +397,7 @@ func main() {
 		v1.DELETE("/:owner/:service", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service, ext := getExt(c, "service", "csv")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "DELETE service", owner, service))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -397,6 +412,7 @@ func main() {
 		v1.DELETE("/:owner/:service/colnames/*langs", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "DELETE servicecolnames", owner, service))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -414,6 +430,7 @@ func main() {
 		v1.DELETE("/:owner/:service/values/*count", func(c *gin.Context) {
 			owner := c.Param("owner")
 			service := c.Param("service")
+			logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "DELETE servicevalues", owner, service))
 			if !isOwner(c, owner) {
 				c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
 				return
@@ -441,12 +458,17 @@ func main() {
 	//log.Println("====> GO FUNC")
 	if err := srv.ListenAndServeTLS("certs/server.crt", "certs/server.key"); err != nil {
 		if err == http.ErrServerClosed {
-			log.Println("graceful service shutdown")
+			logger.AppLogger.Info("main", "main", "service shutdown...")
 		} else {
-			log.Println("service cannot be started: ", err)
+			reqLog := logger.LogRequest{
+				UUID:     "main",
+				Username: "main",
+				ExitCode: 1,
+			}
+			logger.AppLogger.WriteAndExit(&reqLog)
 		}
 	}
 	//}()
 
-	log.Println("<==== END")
+	logger.AppLogger.Info("main", "main", "===> END.")
 }
