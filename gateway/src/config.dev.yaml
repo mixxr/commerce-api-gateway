@@ -1,12 +1,16 @@
 # config.dev.yaml
 APP:
   TITLE: "Data Commerce Gateway"
+  CERT: "certs/server.crt" 
+  KEY: "certs/server.key" 
+  IP: ""
+  PORT: "8443"
 
 DATAACCESS:
   HOST: "localhost"
   PORT: "3306"
   USERNAME: "root"
-  PASWORD: "secr3tZ"
+  PASSWORD: "secr3tZ"
   DBNAME: "dcgw"
 
 LOGGER:

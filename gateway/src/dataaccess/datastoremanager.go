@@ -3,6 +3,7 @@ package dataaccess
 import (
 	"fmt"
 	"main/dataaccess/impl/mydatastore"
+	"main/logger"
 	"os"
 
 	"github.com/spf13/viper"
@@ -41,12 +42,12 @@ func loadConfigurations() *mydatastore.DBConfig {
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Using default DATAACCESS configurations...Error reading config file, %s\n", err)
 	} else {
-		fmt.Printf("Using env DATAACCESS configurations...\n")
-		viper.SetDefault("DATAACCESS.HOST", dbcfg.IP)
-		viper.SetDefault("DATAACCESS.PORT", dbcfg.Port)
-		viper.SetDefault("DATAACCESS.USERNAME", dbcfg.Uid)
-		viper.SetDefault("DATAACCESS.PASSWORD", dbcfg.Pwd)
-		viper.SetDefault("DATAACCESS.DBNAME", dbcfg.Dbname)
+		fmt.Printf("Using provided DATAACCESS configurations...\n")
+		// viper.SetDefault("DATAACCESS.HOST", dbcfg.IP)
+		// viper.SetDefault("DATAACCESS.PORT", dbcfg.Port)
+		// viper.SetDefault("DATAACCESS.USERNAME", dbcfg.Uid)
+		// viper.SetDefault("DATAACCESS.PASSWORD", dbcfg.Pwd)
+		// viper.SetDefault("DATAACCESS.DBNAME", dbcfg.Dbname)
 		dbcfg.IP = viper.Get("DATAACCESS.HOST").(string)
 		dbcfg.Port = viper.Get("DATAACCESS.PORT").(string)
 		dbcfg.Uid = viper.Get("DATAACCESS.USERNAME").(string)
@@ -60,7 +61,7 @@ func loadConfigurations() *mydatastore.DBConfig {
 func NewDatastore() (IDatastore, error) {
 
 	dbcfg := loadConfigurations()
-	fmt.Println("Connecting to...", dbcfg.String())
+	logger.AppLogger.Info("dal", "dal", "Connecting to...", dbcfg.String())
 
 	myDatastore, err := mydatastore.NewDatastore(dbcfg)
 	if err != nil {

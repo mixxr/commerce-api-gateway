@@ -99,10 +99,10 @@ func loadConfigurations() {
 			level:    LogInfo,
 			filename: DefLogFileName}
 	} else {
-		fmt.Printf("Using env LOGGER configurations...%d\n", viper.Get("LOGGER.LEVEL").(int))
-		viper.SetDefault("LOGGER.LEVEL", LogInfo)
-		viper.SetDefault("LOGGER.FILENAME", DefLogFileName)
-		viper.SetDefault("LOGGER.LOGPATH", ".")
+		fmt.Printf("Using provided LOGGER configurations...\n")
+		// viper.SetDefault("LOGGER.LEVEL", LogInfo)
+		// viper.SetDefault("LOGGER.FILENAME", DefLogFileName)
+		// viper.SetDefault("LOGGER.LOGPATH", ".")
 		AppLogger = &Logger{
 			level:    viper.Get("LOGGER.LEVEL").(int),
 			filename: fmt.Sprintf("%s/%s", viper.Get("LOGGER.LOGPATH").(string), viper.Get("LOGGER.FILENAME").(string))}
