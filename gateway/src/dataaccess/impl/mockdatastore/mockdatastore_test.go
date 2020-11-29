@@ -33,10 +33,11 @@ func TestMockDatastore(t *testing.T) {
 	table1, err = mockDS.ReadTable(&tin)
 	if err != nil {
 		fmt.Println(err)
-	}
-	fmt.Println("Read Mock:", table1.String())
+	} else {
+		fmt.Println("Read Mock:", table1.String())
 
-	table1.Colnames, _ = mockDS.ReadTableColnames(table1, "")
-	table1.Values, _ = mockDS.ReadTableValues(table1, 0, 5)
+		table1.Colnames, _ = mockDS.ReadTableColnames(table1, "")
+		table1.Values, _ = mockDS.ReadTableValues(table1, 0, 5)
+	}
 
 }

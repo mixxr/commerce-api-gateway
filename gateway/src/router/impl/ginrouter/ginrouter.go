@@ -3,7 +3,6 @@ package ginrouter
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"time"
@@ -78,7 +77,7 @@ func AuthRequired(c *gin.Context) {
 
 	username, password, hasAuth := c.Request.BasicAuth()
 
-	log.Println("Authentication:", username, password, hasAuth)
+	logger.AppLogger.Info(c.GetString(contextXRequestID), "main", "Authentication:", username, password, hasAuth)
 
 	c.Set(contextUsername, username)
 
@@ -88,7 +87,7 @@ func AuthRequired(c *gin.Context) {
 
 func getStatus(c *gin.Context, owner string) int {
 	username := c.GetString(contextUsername)
-	log.Println("getStatus:", username)
+	logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "getStatus:", username))
 	if username == owner {
 		return models.StatusDraft
 	}
@@ -97,7 +96,7 @@ func getStatus(c *gin.Context, owner string) int {
 
 func isOwner(c *gin.Context, owner string) bool {
 	username := c.GetString(contextUsername)
-	log.Println("isOwner:", username)
+	logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "isOwner:", username))
 
 	return username == owner
 }
