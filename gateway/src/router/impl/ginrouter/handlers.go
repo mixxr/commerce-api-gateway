@@ -148,15 +148,19 @@ func (o *GinRouter) postColnamesHandler(c *gin.Context) {
 	lang, ext := getExt(c, "lang", "csv")
 	logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "CREATE servicecolnames", owner, service, lang))
 	if !isOwner(c, owner) {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "you are not allowed"})
 		return
 	}
 	var tableJson models.TableColnames
 	if err := c.ShouldBindJSON(&tableJson); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	tableJson.Lang = lang
+
+	if tableJson.Lang != lang {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "lang does not match the url"})
+		return
+	}
 	tableJson.SetParent(&models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)})
 
 	err := o.dal.StoreTableColnames(&tableJson)

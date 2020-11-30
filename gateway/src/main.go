@@ -134,7 +134,8 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	logger.AppLogger.Info("main", "main", "service starting...", config.IpAndPort)
+	logger.AppLogger.Info("main", "main", "ready to listen...", config.IpAndPort)
+	fmt.Println("ready to listen...", config.IpAndPort)
 	if err := srv.ListenAndServeTLS(config.Cert, config.Key); err != nil {
 		if err == http.ErrServerClosed {
 			logger.AppLogger.Info("main", "main", "service shutdown...")

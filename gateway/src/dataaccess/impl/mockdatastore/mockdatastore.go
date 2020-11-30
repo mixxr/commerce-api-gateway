@@ -54,14 +54,14 @@ func (o *MockDatastore) UpdateTable(t *models.Table) error {
 	return nil
 }
 
-func (o *MockDatastore) AddColnames(t *models.TableColnames) error {
-	return nil
-}
+// func (o *MockDatastore) AddColnames(t *models.TableColnames) error {
+// 	return nil
+// }
 
-func (o *MockDatastore) AddValues(t *models.TableValues) error {
+// func (o *MockDatastore) AddValues(t *models.TableValues) error {
 
-	return nil
-}
+// 	return nil
+// }
 
 // END Strore functions
 func (o *MockDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {

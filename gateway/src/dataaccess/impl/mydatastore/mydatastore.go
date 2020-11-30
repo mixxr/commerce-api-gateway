@@ -122,25 +122,30 @@ func (o *MyDatastore) StoreTable(t *models.Table) error {
 }
 
 // StoreTableColnames in a Transaction:
-// 1. create table owner_name_colnames
-// 2. insert into owner_name_colnames
-// 3. update NCols in table_
+// 1. create table owner_name_colnames if does not exist
+// 2. delete owner_name_colnames where lang=...
+// 3. insert into owner_name_colnames
+// 4. update NCols in table_
 func (o *MyDatastore) StoreTableColnames(t *models.TableColnames) error {
 	if !t.IsValid() {
 		return fmt.Errorf("colnames cannot be created for this params: %s", t.String())
 	}
-	var sqlstr [3]string
+	var sqlstr [4]string
 	var err error
 
 	sqlstr[0], err = utils.GetCreateTableColnames(t)
 	if err != nil {
 		return err
 	}
-	sqlstr[1], err = utils.GetInsertTableColnames(t)
+	sqlstr[1], err = utils.GetDeleteTableColnames(t.Parent(), []string{t.Lang})
 	if err != nil {
 		return err
 	}
-	sqlstr[2], err = utils.GetUpdateNCols(t.Parent(), len(t.Header))
+	sqlstr[2], err = utils.GetInsertTableColnames(t)
+	if err != nil {
+		return err
+	}
+	sqlstr[3], err = utils.GetUpdateNCols(t.Parent(), len(t.Header))
 	if err != nil {
 		return err
 	}
@@ -227,7 +232,7 @@ func (o *MyDatastore) StoreTableValues(t *models.TableValues) error {
 	}
 
 	if err = tx.Commit(); err == nil {
-		t.Count = affectedRows
+		t.Count += affectedRows
 	}
 
 	return err
@@ -275,74 +280,74 @@ func (o *MyDatastore) UpdateTable(t *models.Table) error {
 // if lang exists
 // 		1. delete owner_name_colnames where lang=
 // 1. insert owner_name_colnames (lang, ...)
-func (o *MyDatastore) AddColnames(t *models.TableColnames) error {
-	var sql1, sql2 string
-	var err error
-	sql1, err = utils.GetDeleteTableColnames(t.Parent(), []string{t.Lang})
-	if err != nil {
-		return err
-	}
-	sql2, err = utils.GetInsertTableColnames(t)
-	if err != nil {
-		return err
-	}
-	// Transaction starts
-	tx, err := o.db.Begin()
-	if err != nil {
-		return err
-	}
+// func (o *MyDatastore) AddColnames(t *models.TableColnames) error {
+// 	var sql1, sql2 string
+// 	var err error
+// 	sql1, err = utils.GetDeleteTableColnames(t.Parent(), []string{t.Lang})
+// 	if err != nil {
+// 		return err
+// 	}
+// 	sql2, err = utils.GetInsertTableColnames(t)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Transaction starts
+// 	tx, err := o.db.Begin()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	_, err = tx.Exec(sql1)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+// 	_, err = tx.Exec(sql1)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
 
-	_, err = tx.Exec(sql2)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+// 	_, err = tx.Exec(sql2)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
 
-	return tx.Commit()
-}
+// 	return tx.Commit()
+// }
 
 // AddValues
 // 1. insert owner_name_values
 // 2. update table_ (nrows++)
-func (o *MyDatastore) AddValues(t *models.TableValues) error {
-	var sql1, sql2 string
-	var err error
-	sql1, err = utils.GetInsertTableValues(t)
-	if err != nil {
-		return err
-	}
+// func (o *MyDatastore) AddValues(t *models.TableValues) error {
+// 	var sql1, sql2 string
+// 	var err error
+// 	sql1, err = utils.GetInsertTableValues(t)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// Transaction starts
-	// tx, errTx := mainconn.db.Begin()
-	// if errTx != nil {
-	// 	return err
-	// }
+// 	// Transaction starts
+// 	// tx, errTx := mainconn.db.Begin()
+// 	// if errTx != nil {
+// 	// 	return err
+// 	// }
 
-	res, err1 := o.db.Exec(sql1)
-	if err1 != nil {
-		return err1
-	}
-	nrows, _ := res.RowsAffected()
+// 	res, err1 := o.db.Exec(sql1)
+// 	if err1 != nil {
+// 		return err1
+// 	}
+// 	nrows, _ := res.RowsAffected()
 
-	sql2, err = utils.GetIncrementTable(t.Parent(), nrows)
-	if err != nil {
-		return err
-	}
+// 	sql2, err = utils.GetIncrementTable(t.Parent(), nrows)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	_, err = o.db.Exec(sql2)
-	if err != nil {
-		return err
-	}
+// 	_, err = o.db.Exec(sql2)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-	//return tx.Commit()
-}
+// 	return nil
+// 	//return tx.Commit()
+// }
 
 // END Strore functions
 

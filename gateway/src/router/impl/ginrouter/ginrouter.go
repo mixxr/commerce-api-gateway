@@ -180,10 +180,10 @@ func CreateRouter(dal dataaccess.IDatastore) (*GinRouter, error) {
 		v1.GET("/:owner/:service/values/:start/:count", ginRouter.getValuesHandler)
 		// CREATE
 		v1.POST("/:owner/:service", ginRouter.postServiceHandler)
-		v1.PUT("/:owner/:service", ginRouter.putServiceHandler)
 		v1.POST("/:owner/:service/colnames/:lang", ginRouter.postColnamesHandler)
-		// RETURN: number of affected rows in json format
-		v1.POST("/:owner/:service/values", ginRouter.postValuesHandler)
+		v1.POST("/:owner/:service/values", ginRouter.postValuesHandler) // RETURN: number of affected rows in json format
+		// UPDATE
+		v1.PUT("/:owner/:service", ginRouter.putServiceHandler)
 		// DELETE
 		v1.DELETE("/:owner/:service", ginRouter.deleteServiceHandler)
 		// langs = / => all colnames

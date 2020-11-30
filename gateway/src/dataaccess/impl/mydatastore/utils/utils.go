@@ -139,7 +139,7 @@ func GetTableColnamesName(o *models.Table) string {
 func GetCreateTableColnames(o *models.TableColnames) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableColnamesName(o.Parent()))
+	fmt.Fprintf(&buffer, "CREATE TABLE IF NOT EXISTS %s (", GetTableColnamesName(o.Parent()))
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")
@@ -235,7 +235,7 @@ func GetTableValuesName(o *models.Table) string {
 func GetCreateTableValues(o *models.TableValues) (string, error) {
 	var buffer bytes.Buffer
 
-	fmt.Fprintf(&buffer, "CREATE TABLE %s (", GetTableValuesName(o.Parent()))
+	fmt.Fprintf(&buffer, "CREATE TABLE IF NOT EXISTS %s (", GetTableValuesName(o.Parent()))
 
 	buffer.WriteString("id BIGINT NOT NULL AUTO_INCREMENT,")
 	buffer.WriteString("created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,")

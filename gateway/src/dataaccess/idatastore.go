@@ -8,9 +8,9 @@ type IDatastore interface {
 	StoreTableColnames(t *models.TableColnames) error
 	StoreTableValues(t *models.TableValues) error
 	// update
-	UpdateTable(t *models.Table) error         // updates table_
-	AddColnames(t *models.TableColnames) error // add additional entry in <table>_colnames
-	AddValues(t *models.TableValues) error     // add additional entries in <table>_values
+	UpdateTable(t *models.Table) error // updates table_
+	//AddColnames(t *models.TableColnames) error // add additional entry in <table>_colnames
+	//AddValues(t *models.TableValues) error // add additional entries in <table>_values
 	// read
 	ReadTables(*models.Table) ([]*models.Table, error)
 	ReadTable(*models.Table) (*models.Table, error)
