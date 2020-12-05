@@ -3,6 +3,7 @@ package ginrouter
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	"time"
@@ -12,6 +13,8 @@ import (
 
 	"main/logger"
 
+	"github.com/foolin/goview"
+	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -142,9 +145,49 @@ func createGinRouter() *gin.Engine {
 	return router
 }
 
+func addUITemplate(ginRouter *GinRouter) {
+	// goview.Config{
+	// 	Root:      "views/gin/templates",
+	// 	Extension: ".html",
+	// 	Master:    "layouts/master",
+	// 	//Partials:  []string{"partials/ad"},
+	// 	// Funcs: template.FuncMap{
+	// 	//     "sub": func(a, b int) int {
+	// 	//         return a - b
+	// 	//     },
+	// 	//     "copy": func() string {
+	// 	//         return time.Now().Format("2006")
+	// 	//     },
+	// 	// },
+	// 	DisableCache: false,
+	// }
+
+	ginRouter.httpengine.HTMLRender = ginview.New(goview.Config{
+		Root:         "views/gin/templates",
+		Extension:    ".html",
+		Master:       "layouts/master",
+		DisableCache: false,
+	})
+
+	view := ginRouter.httpengine.Group("/views")
+
+	view.GET("/services", ginRouter.indexViewHandler)
+
+	// default REDIRECT
+	ginRouter.httpengine.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/views/services")
+	})
+
+	ginRouter.httpengine.Static("/assets", "./assets")
+}
+
 type GinRouter struct {
 	dal        dataaccess.IDatastore
 	httpengine *gin.Engine
+}
+
+func (o *GinRouter) GetHandler() http.Handler {
+	return o.httpengine
 }
 
 func CreateRouter(dal dataaccess.IDatastore) (*GinRouter, error) {
@@ -161,41 +204,48 @@ func CreateRouter(dal dataaccess.IDatastore) (*GinRouter, error) {
 		httpengine: createGinRouter(),
 	}
 
+	ginRouter.httpengine.Use(AuthRequired)
+	ginRouter.httpengine.Use(CreateLogEntry)
+
+	// adding ping
 	ginRouter.httpengine.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
 
+	// adding UI routes
+	addUITemplate(ginRouter)
+
+	// adding services routes
 	v1 := ginRouter.httpengine.Group("/services/v1")
 	//tables := v1.Group("/:owner/:service")
-	v1.Use(AuthRequired)
-	v1.Use(CreateLogEntry)
-	{
-		// eg. /abc/123/search/an_interesting_service/tag1/tag2/tag3
-		// eg. /abc-/123-/search/an_interesting_service/tag1/tag2/tag3
-		v1.GET("/:owner/:service/search/:descr/*tags", ginRouter.searchHandler)
-		v1.GET("/:owner/:service", ginRouter.getServiceHandler)
-		v1.GET("/:owner/:service/colnames/:lang", ginRouter.getColnamesHandler)
-		v1.GET("/:owner/:service/values/:start/:count", ginRouter.getValuesHandler)
-		// CREATE
-		v1.POST("/:owner/:service", ginRouter.postServiceHandler)
-		v1.POST("/:owner/:service/colnames/:lang", ginRouter.postColnamesHandler)
-		v1.POST("/:owner/:service/values", ginRouter.postValuesHandler) // RETURN: number of affected rows in json format
-		// UPDATE
-		v1.PUT("/:owner/:service", ginRouter.putServiceHandler)
-		// DELETE
-		v1.DELETE("/:owner/:service", ginRouter.deleteServiceHandler)
-		// langs = / => all colnames
-		// langs = /it => only it colnames
-		// langs = /it/en/es => it,en and es colnames
-		v1.DELETE("/:owner/:service/colnames/*langs", ginRouter.deleteColnamesHandler)
-		// count = 0 => ALL rows
-		// count > 0 => TOP rows
-		// count < 0 => BOTTOM rows
-		v1.DELETE("/:owner/:service/values/*count", ginRouter.deleteValuesHandler)
 
-	}
+	// {
+	// eg. /abc/123/search/an_interesting_service/tag1/tag2/tag3
+	// eg. /abc-/123-/search/an_interesting_service/tag1/tag2/tag3
+	v1.GET("/:owner/:service/search/:descr/*tags", ginRouter.searchHandler)
+	v1.GET("/:owner/:service", ginRouter.getServiceHandler)
+	v1.GET("/:owner/:service/colnames/:lang", ginRouter.getColnamesHandler)
+	v1.GET("/:owner/:service/values/:start/:count", ginRouter.getValuesHandler)
+	// CREATE
+	v1.POST("/:owner/:service", ginRouter.postServiceHandler)
+	v1.POST("/:owner/:service/colnames/:lang", ginRouter.postColnamesHandler)
+	v1.POST("/:owner/:service/values", ginRouter.postValuesHandler) // RETURN: number of affected rows in json format
+	// UPDATE
+	v1.PUT("/:owner/:service", ginRouter.putServiceHandler)
+	// DELETE
+	v1.DELETE("/:owner/:service", ginRouter.deleteServiceHandler)
+	// langs = / => all colnames
+	// langs = /it => only it colnames
+	// langs = /it/en/es => it,en and es colnames
+	v1.DELETE("/:owner/:service/colnames/*langs", ginRouter.deleteColnamesHandler)
+	// count = 0 => ALL rows
+	// count > 0 => TOP rows
+	// count < 0 => BOTTOM rows
+	v1.DELETE("/:owner/:service/values/*count", ginRouter.deleteValuesHandler)
+
+	// }
 
 	return ginRouter, nil
 }

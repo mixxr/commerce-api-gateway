@@ -18,7 +18,7 @@ func formatAndReturn(tables []models.ITable, err error, c *gin.Context, format s
 	if err == nil {
 		switch format {
 		case "json":
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "TBD",
 			})
 		case "csv":
@@ -35,10 +35,6 @@ func formatAndReturn(tables []models.ITable, err error, c *gin.Context, format s
 			"message": err.Error(),
 		})
 	}
-}
-
-func (o *GinRouter) GetHandler() http.Handler {
-	return o.httpengine
 }
 
 func (o *GinRouter) searchHandler(c *gin.Context) {
@@ -172,19 +168,19 @@ func (o *GinRouter) postValuesHandler(c *gin.Context) {
 	service := c.Param("service")
 	logger.AppLogger.Write(GetLogRequest(c, logger.LogInfo, "CREATE servicevalues", owner, service))
 	if !isOwner(c, owner) {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "you are not allowed"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "you are not allowed"})
 		return
 	}
 	var tableJson models.TableValues
 	if err := c.ShouldBindJSON(&tableJson); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 	tableJson.SetParent(&models.Table{Name: service, Owner: owner, Status: getStatus(c, owner)})
 
 	err := o.dal.StoreTableValues(&tableJson)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"count": tableJson.Count})

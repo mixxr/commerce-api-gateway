@@ -317,7 +317,16 @@ func GetSelectTableValues(o *models.TableValues) (string, error) {
 
 // GetDropTables DROP both <owner>_<name>_colnames and <owner>_<name>_values in NOWAIT
 func GetDropTables(o *models.Table) (string, error) {
-	return fmt.Sprintf("DROP TABLE IF EXISTS %s, %s NOWAIT;",
+	// to be sure to remove any table
+	o.Status = models.StatusDraft
+	tableNames := []string{
+		GetTableColnamesName(o),
+		GetTableValuesName(o),
+	}
+	o.Status = models.StatusEnabled
+	return fmt.Sprintf("DROP TABLE IF EXISTS %s, %s, %s, %s NOWAIT;",
+		tableNames[0],
+		tableNames[1],
 		GetTableColnamesName(o),
 		GetTableValuesName(o)), nil
 }

@@ -488,7 +488,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 	var totRows int64
 	sqlCount, _ := utils.GetSelectNRows(tin)
 	o.db.QueryRow(sqlCount).Scan(&totRows)
-	fmt.Println("ReadTableValues, SQL, result, count: ", sqlCount, totRows, count)
+	logger.AppLogger.Info("", "", "ReadTableValues, SQL, result, count: ", sqlCount, totRows, count)
 	totRows -= int64(start)
 	if totRows > 0 {
 		// this allocates always array len = min(available #rows - start, requested #rows)
@@ -515,8 +515,8 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 		for r := int64(0); r < totRows; r++ {
 			tableValues.Rows[r] = make([]string, totCols)
 		}
-		j := 0
-		for rows.Next() {
+		var j int64 = 0
+		for rows.Next() && j < totRows {
 			for i := 0; i < totCols; i++ {
 				valuePtrs[i] = &values[i]
 			}
@@ -554,6 +554,8 @@ func (o *MyDatastore) DeleteTable(t *models.Table) error {
 	if err != nil {
 		return err
 	}
+
+	logger.AppLogger.Info("", "", "DeleteTable, SQL: ", sqlstr[1])
 
 	// Transaction starts
 	tx, err := o.db.Begin()
