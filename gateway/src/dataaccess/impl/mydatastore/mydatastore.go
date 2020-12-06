@@ -406,6 +406,7 @@ func (o *MyDatastore) ReadTable(tin *models.Table) (*models.Table, error) {
 		}
 		table.Name = name
 		table.Owner = owner
+
 		return &table, nil
 	}
 
@@ -476,6 +477,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 	if errMain != nil {
 		return nil, fmt.Errorf("values do not exist for input param: %s", tin)
 	}
+	logger.AppLogger.Info("", "", "ReadTable, RESULT: ", t)
 	tableValues := models.NewValues(t, start, count, nil)
 	sqlstr, errParam := utils.GetSelectTableValues(tableValues)
 
@@ -524,6 +526,7 @@ func (o *MyDatastore) ReadTableValues(tin *models.Table, start int, count int64)
 			for i := 0; i < totCols; i++ {
 				tableValues.Rows[j][i] = string(values[i].([]byte))
 			}
+			logger.AppLogger.Info("", "", "row:", j, tableValues.Rows[j])
 			j++
 		}
 		tableValues.Count = totRows

@@ -1,7 +1,10 @@
 package models
 
+import "io"
+
 type ITable interface {
 	String() string
+	StreamCSV(writer io.Writer)
 }
 
 func ConvertToITables(tablesIn []*Table) []ITable {

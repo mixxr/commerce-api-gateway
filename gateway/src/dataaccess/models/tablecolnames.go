@@ -1,7 +1,9 @@
 package models
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -13,6 +15,14 @@ type TableColnames struct {
 
 func (o *TableColnames) String() string {
 	return fmt.Sprintf("%s,%s", o.Lang, strings.Join(o.Header, ","))
+}
+
+func (o *TableColnames) StreamCSV(writer io.Writer) {
+	w := csv.NewWriter(writer)
+
+	record := append([]string{o.Lang}, o.Header...)
+	w.Write(record)
+	w.Flush()
 }
 
 func (o *TableColnames) Parent() *Table {

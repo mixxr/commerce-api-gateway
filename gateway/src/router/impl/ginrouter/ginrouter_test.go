@@ -2,6 +2,7 @@ package ginrouter_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"main/logger"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"main/dataaccess/impl/mockdatastore"
+	"main/dataaccess"
 	"main/router/impl/ginrouter"
 
 	"github.com/gin-gonic/gin"
@@ -20,9 +21,20 @@ import (
 var router *ginrouter.GinRouter
 
 func init() {
-	dbcfg := &mockdatastore.DBConfig{}
-	mockDatastore, _ := mockdatastore.NewDatastore(dbcfg)
-	router, _ = ginrouter.CreateRouter(mockDatastore)
+	// dbcfg := &mockdatastore.DBConfig{}
+	// mockDatastore, _ := mockdatastore.NewDatastore(dbcfg)
+
+	dal, errSQL := dataaccess.NewDatastore()
+	if errSQL != nil {
+		fmt.Println("SQL TEST NOT FOUND:", errSQL)
+		os.Exit(1)
+	}
+	var errRouter error
+	router, errRouter = ginrouter.CreateRouter(dal)
+	if errRouter != nil {
+		fmt.Println("ROUTER TEST NOT FOUND:", errRouter)
+		os.Exit(1)
+	}
 }
 
 func performRequest(r http.Handler, method, path string, payload io.Reader, username, pwd string) *httptest.ResponseRecorder {
@@ -82,9 +94,6 @@ func Test01Delete(t *testing.T) {
 }
 
 func Test02PutTableUnexisting(t *testing.T) {
-	// Build our expected body
-	jsonResponse := "{\"message\":\"service do not exist for params: '','samurl','bicycleurl','','',0,0,0\"}"
-
 	jsonFilePath := "../../examples/table.enabled.json"
 	jsonFile, _ := os.Open(jsonFilePath)
 
@@ -95,7 +104,7 @@ func Test02PutTableUnexisting(t *testing.T) {
 	w := performRequest(router.GetHandler(), "PUT", "/services/v1/samurl/bicycleurl", jsonFile, "samurl", "passw0rd")
 	// the request gives a 400
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, jsonResponse, w.Body.String())
+	assert.True(t, strings.Contains(w.Body.String(), "\"message\":\"service do not exist for params:"))
 }
 
 func Test10Insert(t *testing.T) {
@@ -184,9 +193,26 @@ func Test14ValuesInsert(t *testing.T) {
 	assert.Equal(t, jsonResponse, w.Body.String())
 }
 
+func Test14ValuesInsert2(t *testing.T) {
+	// Build our expected body
+	jsonResponse := "{\"count\":6}"
+
+	jsonFilePath := "../../examples/tablevalues.2.json"
+	jsonFile, _ := os.Open(jsonFilePath)
+
+	logger.AppLogger.Info("test", "test", "Successfully opened", jsonFilePath, "samurl", "passw0rd")
+	// defer the closing of our jsonFile so that we can parse it later on
+	defer jsonFile.Close()
+
+	w := performRequest(router.GetHandler(), "POST", "/services/v1/samurl/bicycleurl/values", jsonFile, "samurl", "passw0rd")
+	// the request gives a 200
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, jsonResponse, w.Body.String())
+}
+
 func Test30ReadDraftCSV(t *testing.T) {
 	// Build our expected body
-	csvResponse := "'en','samurl','bicycleurl','bicycle models for summer 2020','summer,2020',5,0,1\n"
+	csvResponse := "en,samurl,bicycleurl,bicycle models for summer 2020,\"summer,2020\",5,12,1\n"
 
 	w := performRequest(router.GetHandler(), "GET", "/services/v1/samurl/bicycleurl.csv", nil, "samurl", "passw0rd")
 	// the request gives a 200
@@ -255,7 +281,7 @@ func Test40PutTableUnauthrized(t *testing.T) {
 
 func Test41PutTable(t *testing.T) {
 	// Build our expected body
-	csvResponse := "'en','samurl','bicycleurl','bicycle models for summer 2020','summer,2020',5,6,2\n"
+	csvResponse := "en,samurl,bicycleurl,bicycle models for summer 2020,\"summer,2020\",5,12,2\n"
 
 	jsonFilePath := "../../examples/table.enabled.json"
 	jsonFile, _ := os.Open(jsonFilePath)
@@ -272,7 +298,7 @@ func Test41PutTable(t *testing.T) {
 
 func Test50ReadCSV(t *testing.T) {
 	// Build our expected body
-	csvResponse := "'en','samurl','bicycleurl','bicycle models for summer 2020','summer,2020',5,6,2\n"
+	csvResponse := "en,samurl,bicycleurl,bicycle models for summer 2020,\"summer,2020\",5,12,2\n"
 
 	w := performRequest(router.GetHandler(), "GET", "/services/v1/samurl/bicycleurl.csv", nil, "samurl", "passw0rd")
 	// the request gives a 200
@@ -282,10 +308,25 @@ func Test50ReadCSV(t *testing.T) {
 
 func Test51ReadEnabledCSV(t *testing.T) {
 	// Build our expected body
-	csvResponse := "'en','samurl','bicycleurl','bicycle models for summer 2020','summer,2020',5,6,2\n"
+	csvResponse := "en,samurl,bicycleurl,bicycle models for summer 2020,\"summer,2020\",5,12,2\n"
 
 	w := performRequest(router.GetHandler(), "GET", "/services/v1/samurl/bicycleurl.csv", nil, "", "")
 	// the request gives a 200
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, csvResponse, w.Body.String())
+}
+
+func Test90Delete(t *testing.T) {
+	w := performRequest(router.GetHandler(), "DELETE", "/services/v1/samurl/bicycleurl", nil, "samurl", "passw0rd")
+	// the request gives a 200
+	assert.Equal(t, http.StatusOK, w.Code)
+	// Convert the JSON response to a map
+	// var response map[string]string
+	// err := json.Unmarshal([]byte(w.Body.String()), &response)
+	// // Grab the value & whether or not it exists
+	// value, exists := response["message"]
+	// // Make some assertions on the correctness of the response.
+	// assert.Nil(t, err)
+	// assert.True(t, exists)
+	// assert.Equal(t, body["message"], value)
 }

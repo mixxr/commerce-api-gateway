@@ -2,7 +2,9 @@ package models
 
 import (
 	"bytes"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -33,11 +35,22 @@ func (o *TableValues) String() string {
 	var buffer bytes.Buffer
 
 	for _, row := range o.Rows {
-		str := strings.Join(row, ", ")
+		// TODO: escape comma for CSV
+		str := strings.Join(row, ",")
 		fmt.Fprintf(&buffer, "%s\n", str)
 	}
 
 	return buffer.String()
+}
+
+func (o *TableValues) StreamCSV(writer io.Writer) {
+	w := csv.NewWriter(writer)
+
+	// for _, row := range o.Rows {
+	// 	w.Write(row)
+	// 	//		fmt.Fprintf(&buffer, "%s\n", str)
+	// }
+	w.WriteAll(o.Rows)
 }
 
 func (o *TableValues) SetParent(t *Table) {

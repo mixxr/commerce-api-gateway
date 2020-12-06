@@ -139,6 +139,26 @@ func createGinRouter() *gin.Engine {
 		)
 	}))
 
+	// HTTP to HTTPS
+	// TODO: http port via yaml
+	// secureFunc := func() gin.HandlerFunc {
+	// 	return func(c *gin.Context) {
+	// 		secureMiddleware := secure.New(secure.Options{
+	// 			SSLRedirect: true,
+	// 			SSLHost:     "localhost:8443",
+	// 		})
+	// 		err := secureMiddleware.Process(c.Writer, c.Request)
+
+	// 		// If there was an error, do not continue.
+	// 		if err != nil {
+	// 			return
+	// 		}
+
+	// 		c.Next()
+	// 	}
+	// }()
+	// router.Use(secureFunc) // HTTPS redirect
+
 	router.Use(gin.Recovery()) // 500 management
 	router.Use(RequestIdMiddleware)
 
@@ -162,11 +182,14 @@ func addUITemplate(ginRouter *GinRouter) {
 	// 	DisableCache: false,
 	// }
 
+	// TODO:
+	// DisableCache = true in dev
+	// DisableCache = false in prod
 	ginRouter.httpengine.HTMLRender = ginview.New(goview.Config{
 		Root:         "views/gin/templates",
 		Extension:    ".html",
 		Master:       "layouts/master",
-		DisableCache: false,
+		DisableCache: true,
 	})
 
 	view := ginRouter.httpengine.Group("/views")

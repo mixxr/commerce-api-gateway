@@ -9,4 +9,5 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.4.0
+	github.com/unrolled/secure v1.0.8
 )

@@ -1,8 +1,6 @@
 package ginrouter
 
 import (
-	"bytes"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -22,12 +20,13 @@ func formatAndReturn(tables []models.ITable, err error, c *gin.Context, format s
 				"message": "TBD",
 			})
 		case "csv":
-			var buffer bytes.Buffer
-
+			//var buffer bytes.Buffer
+			c.Status(http.StatusOK)
 			for _, t := range tables {
-				fmt.Fprintf(&buffer, "%s\n", t.String())
+				//fmt.Fprintf(&buffer, "%s\n", t.String())
+				t.StreamCSV(c.Writer)
 			}
-			c.String(http.StatusOK, buffer.String())
+			//c.String(http.StatusOK, buffer.String())
 		}
 	} else {
 		// ERROR

@@ -1,7 +1,10 @@
 package models
 
 import (
+	"encoding/csv"
 	"fmt"
+	"io"
+	"strconv"
 )
 
 const (
@@ -46,6 +49,14 @@ func (o *Table) IsValid() bool {
 
 func (o *Table) String() string {
 	return fmt.Sprintf("'%s','%s','%s','%s','%s',%d,%d,%d", o.DefLang, o.Owner, o.Name, o.Descr, o.Tags, o.NCols, o.NRows, o.Status)
+}
+
+func (o *Table) StreamCSV(writer io.Writer) {
+	w := csv.NewWriter(writer)
+
+	record := []string{o.DefLang, o.Owner, o.Name, o.Descr, o.Tags, strconv.Itoa(o.NCols), strconv.FormatInt(o.NRows, 10), strconv.Itoa(o.Status)}
+	w.Write(record)
+	w.Flush()
 }
 
 // func (o *Table) IsOwner() bool {
