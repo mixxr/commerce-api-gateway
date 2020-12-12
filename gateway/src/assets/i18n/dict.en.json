@@ -1,0 +1,10 @@
+{
+    "dicts": {
+        "en": {
+            "meta.title": "Search Services",
+            "tag.H1": "Services",
+            "tag.H2": "<bold>Search Services Subtitle</bold>",
+            "SEARCH_BTN": "Search!"
+        }
+    }
+}

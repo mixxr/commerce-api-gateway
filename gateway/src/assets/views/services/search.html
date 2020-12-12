@@ -1,0 +1,36 @@
+<h1 class="hello"></h1>
+name:<input type="text" id="name"></input><br>
+owner:<input type="text" id="owner"></input><br>
+
+<a href="#" id="SEARCH_BTN">Search</a>
+<div id="table-csv">
+    <table>
+        <thead>
+            <th>Lang</th><th>Owner</th><th>Name</th><th>Description</th><th>Tags</th><th>Cols</th><th>Rows</th><th>Status</th>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+    </table>
+
+</div>
+
+
+<script type="text/javascript" id="appinit">
+    (function(){
+        search=function(e) {
+            e.preventDefault();
+            console.log("services searching...");
+            var view = document.getElementById("table-body");
+
+            // /services/v1/sam-/bi-/search/-/-
+            var name = document.getElementById("name").value;
+            var owner = document.getElementById("owner").value;
+            var url = "/services/v1/" + owner + "-/" + name + "-/search/-/";
+            csv(url, view);
+        };
+
+        console.log("addListener...");
+        var el = document.getElementById("SEARCH_BTN");
+        el.addEventListener("click", (e) => { search(e); }, false);
+    })();
+</script>

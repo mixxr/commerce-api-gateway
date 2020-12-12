@@ -1,0 +1,10 @@
+{
+        "id": "",
+        "name":"otherservice",
+        "owner": "samurl",
+        "deflang": "en",
+        "descr": "here a comment on service",
+        "tags": "summer,2020",
+        "ncols": 5,
+        "status": 2
+}

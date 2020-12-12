@@ -13,8 +13,6 @@ import (
 
 	"main/logger"
 
-	"github.com/foolin/goview"
-	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -185,20 +183,21 @@ func addUITemplate(ginRouter *GinRouter) {
 	// TODO:
 	// DisableCache = true in dev
 	// DisableCache = false in prod
-	ginRouter.httpengine.HTMLRender = ginview.New(goview.Config{
-		Root:         "views/gin/templates",
-		Extension:    ".html",
-		Master:       "layouts/master",
-		DisableCache: true,
-	})
+	// ginRouter.httpengine.HTMLRender = ginview.New(goview.Config{
+	// 	Root:         "views/gin/templates",
+	// 	Extension:    ".html",
+	// 	Master:       "layouts/master",
+	// 	DisableCache: true,
+	// })
 
-	view := ginRouter.httpengine.Group("/views")
+	// view := ginRouter.httpengine.Group("/views")
 
-	view.GET("/services", ginRouter.indexViewHandler)
+	// view.GET("/services", ginRouter.servicesViewHandler)
+	// view.GET("/users", ginRouter.usersViewHandler)
 
 	// default REDIRECT
 	ginRouter.httpengine.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/views/services")
+		c.Redirect(http.StatusMovedPermanently, "/assets/index.html")
 	})
 
 	ginRouter.httpengine.Static("/assets", "./assets")

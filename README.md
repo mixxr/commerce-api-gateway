@@ -53,7 +53,8 @@ or
 to run all tests:
 `go test ./... -cover -count=1`
 
-
+## 3rd party library usage
+- JS: it uses ES6 fetch() 
 
 ## URL examples
 

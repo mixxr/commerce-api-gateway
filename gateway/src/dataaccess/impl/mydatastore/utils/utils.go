@@ -85,7 +85,7 @@ func GetSelectSearchTable(tin *models.Table) (string, error) {
 	}
 	where = append(where, fmt.Sprintf("status>=%d", tin.Status))
 
-	return fmt.Sprintf(`SELECT Id, Owner, Name, Descr, Tags, DefLang, NCols, NRows FROM table_ WHERE %s;`,
+	return fmt.Sprintf(`SELECT Id, Owner, Name, Descr, Tags, DefLang, NCols, NRows, Status FROM table_ WHERE %s;`,
 		strings.Join(where, " AND ")), nil
 }
 

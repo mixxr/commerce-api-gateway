@@ -1,0 +1,17 @@
+{{define "content"}}
+    <h1 class="hello">{{.apptitle}}</h1>
+    <a href="#" id="table-load">Load Table</a>
+    <div id="table-csv"></div>
+
+<script type="text/javascript">
+    console.log("services searching...");
+    var view = document.getElementById("table-csv");
+    var el = document.getElementById("table-load");
+    var url = "/services/v1/samurl/bicycleurl/values/0/12"
+
+    el.addEventListener("click", () => { csv(url,view); }, false);
+</script>
+
+
+
+{{end}}

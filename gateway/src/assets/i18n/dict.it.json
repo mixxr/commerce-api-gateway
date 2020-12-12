@@ -1,0 +1,17 @@
+{
+    "dicts": {
+        "it": {
+            "meta.title": "Lezione 02",
+            "tag.H1": "Lezione numero 02",
+            "tag.H2": "<bold>Oggi impariamo a sommare 2 numeri! non siete emozionati? :)</bold>",
+            "H3": "Il computer per sommare 2 numeri deve sapere in che 'caselle' essi si trovano e poi deve sommare le 2 'caselle'.",
+            "START": "Learn More!",
+            "STEP0-HEADER": "Impariamo il simbolo di 'Input'",
+            "STEP0-BODY": "Aggiungiamo le 2 caselle di 'Input' nelle quali Antonio dovrá inserire i valori da sommare: la casella A e quella B. Poi useremo A e B in seguito.",
+            "STEP1-HEADER": "Impariamo il simbolo di 'Operation'",
+            "STEP1-BODY": "Aggiungiamo il blocco 'Operation' che indicherá al computer di effettuare una elaborazione e diciamo al computer di salvare il risultato di questa elaborazione nella casella C. Poi useremo C in seguito.",
+            "STEP2-HEADER": "Impariamo il simbolo di 'Output'",
+            "STEP2-BODY": "Aggiungiamo il blocco di 'InputOutput' che dice al computer di scrivere a monitor il valore di C. C calcolato in precedenza contiene la somma."
+        }
+    }
+}

@@ -371,7 +371,7 @@ func (o *MyDatastore) ReadTables(tin *models.Table) ([]*models.Table, error) {
 
 	for rows.Next() {
 		table := models.Table{}
-		if err = rows.Scan(&table.Id, &table.Owner, &table.Name, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows); err != nil {
+		if err = rows.Scan(&table.Id, &table.Owner, &table.Name, &table.Descr, &table.Tags, &table.DefLang, &table.NCols, &table.NRows, &table.Status); err != nil {
 			return nil, err
 		}
 		logger.AppLogger.Info("", "", "ReadTables, table: ", table.String())
